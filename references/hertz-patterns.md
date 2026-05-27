@@ -260,8 +260,8 @@ proto 文件中的 `google.api.http` 注解决定了生成的 HTTP 路由：
 |------------|-----------|-------------|
 | `get: "/path"` | GET /path | Query 参数 |
 | `post: "/path" body: "*"` | POST /path | Body (JSON/Form) |
-| `put: "/path/{Id}" body: "*"` | PUT /path/:Id | Path + Body |
-| `delete: "/path/{Id}"` | DELETE /path/:Id | Path 参数 |
+| `put: "/path/:Id" body: "*"` | PUT /path/:Id | Path + Body |
+| `delete: "/path/:Id"` | DELETE /path/:Id | Path 参数 |
 | `additional_bindings: [...]` | 多个路由 | 对应各自绑定方式 |
 
 ## FX 依赖注入模式

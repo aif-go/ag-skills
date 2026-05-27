@@ -33,7 +33,7 @@ service StudentService {
   }
   rpc DeleteStudent(DeleteStudentReq) returns (DeleteStudentResp) {
     option (google.api.http) = {
-      delete: "/student/{Id}"
+      delete: "/student/:Id"
     };
   }
 }
@@ -93,7 +93,7 @@ rpc Create(CreateReq) returns (CreateResp) {
 ```proto
   rpc Delete(DeleteReq) returns (DeleteResp) {
     option (google.api.http) = {
-      delete: "/resource/{Id}"
+      delete: "/resource/:Id"
     };
   }
 }
@@ -101,17 +101,13 @@ rpc Create(CreateReq) returns (CreateResp) {
 message DeleteReq {
   int64 Id = 1;
 }
-// DeleteReq 中必须有 id 字段:
-message DeleteReq {
-  int64 id = 1;
-}
 ```
 
 ### PUT - 更新
 ```proto
   rpc Update(UpdateReq) returns (UpdateResp) {
     option (google.api.http) = {
-      put: "/resource/{Id}"
+      put: "/resource/:Id"
       body: "*"
     };
   }
@@ -143,5 +139,5 @@ message DeleteReq {
 - Field name 用 snake_case：`student_id`
 - 每个 service 一个 proto 文件
 - HTTP 路径用 kebab-case：`/student/get-detail`
-- **路径变量字段名首字母必须大写**：`"/{Id}"` 而非 `"/{id}"`，否则生成的 Go 字段为小写私有字段，不可访问
+- **路径变量格式为 `:<FieldName>`**：如 `"/:Id"`，且请求消息中对应的字段名首字母必须大写
 - go_package 为完整模块路径

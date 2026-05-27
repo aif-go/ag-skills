@@ -41,7 +41,7 @@ option (google.api.http) = {
 };
 
 // Path parameter
-option (google.api.http) = { get: "/student/{Id}" };
+option (google.api.http) = { get: "/student/:Id" };
 ```
 
 ## aggo Commands
