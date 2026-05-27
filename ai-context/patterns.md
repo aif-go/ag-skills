@@ -99,6 +99,32 @@ project/
 └── third_party/      # proto 依赖
 ```
 
+## Configuration
+
+```go
+// config/mymodule.go — 标准三件套
+package config
+
+const MyConfigKey = "mymodule"
+
+type MyConfig struct {
+    Host string `required:"true"`
+    Port int
+}
+
+func DefaultMyConfig() MyConfig {
+    return MyConfig{Port: 8080}
+}
+
+func NewMyConfig(binder ag_conf.IBinder) (*MyConfig, error) {
+    cfg := DefaultMyConfig()
+    if err := binder.Bind(&cfg, MyConfigKey); err != nil {
+        return nil, err
+    }
+    return &cfg, nil
+}
+```
+
 ## Rules
 
 - Proto 文件在 `idl/api/<service>/` 下手动编写

@@ -43,6 +43,50 @@ aglog:
 - 环境差异通过不同的配置文件管理（非代码内判断）
 - 本地开发配置提交 `.yml.sample` 而非实际配置
 
+### AgConf 编程规范
+
+#### 标准三件套（每个配置模块必须遵循）
+
+```go
+// config/mymodule.go
+const MyConfigKey = "mymodule"
+
+type MyConfig struct {
+    Host string `required:"true"`
+    Port int
+}
+
+func DefaultMyConfig() MyConfig {
+    return MyConfig{Port: 8080}
+}
+
+func NewMyConfig(binder ag_conf.IBinder) (*MyConfig, error) {
+    cfg := DefaultMyConfig()
+    if err := binder.Bind(&cfg, MyConfigKey); err != nil {
+        return nil, err
+    }
+    return &cfg, nil
+}
+```
+
+**要点**：
+- 代码设默认值（非 YAML），无配置文件也能运行
+- 构造函数注入 `binder`，禁止全局变量存配置
+- 必填字段加 `required:"true"`，启动时校验
+- 字段名自动映射 YAML key，无需 value 标签（推荐）
+
+#### 禁止项
+
+| 禁止 | 正确做法 |
+|------|----------|
+| 全局变量存配置 | fx 构造函数注入 `ag_conf.IBinder` |
+| 省略默认值 | 始终提供 `DefaultXxxConfig()` |
+| 必填字段无 required | 加 `required:"true"` 标签 |
+| 手动解析 YAML/JSON | 用 `binder.Bind(&cfg, key)` |
+| 写死路径/端口 | 从配置读取 |
+
+**详细参考**: [[ag-conf-patterns]]
+
 ## 日志规范
 
 ### 日志级别使用

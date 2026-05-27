@@ -70,6 +70,11 @@ Load specific guides as needed:
 **File**: [best-practices/overview.md](best-practices/overview.md)
 **When**: Production deployment, code quality, security hardening
 
+#### 7. Configuration Patterns
+**File**: [references/ag-conf-patterns.md](references/ag-conf-patterns.md)
+**When**: Adding or reading configuration, creating config structs, using app.yml, hot-reload, binding config
+**Contains**: Three-part config pattern (struct+default+constructor), 4 value-tag styles, binding vs GetProperty, config priorities, hot-reload
+
 #### Troubleshooting
 **File**: [troubleshooting/common-issues.md](troubleshooting/common-issues.md)
 **When**: aggo proto errors, compile failures, runtime issues, debugging

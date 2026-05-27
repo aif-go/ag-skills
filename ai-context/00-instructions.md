@@ -59,6 +59,7 @@ For complete implementation patterns, refer to [SKILL.md](../SKILL.md):
 - Kitex → [kitex-patterns.md](../references/kitex-patterns.md)
 - Hertz → [hertz-patterns.md](../references/hertz-patterns.md)
 - Database → [database-patterns.md](../references/database-patterns.md)
+- Configuration → [ag-conf-patterns.md](../references/ag-conf-patterns.md)
 
 ## Avoid
 
