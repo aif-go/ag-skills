@@ -65,22 +65,22 @@ This is an ag-core microservice project. Follow the instructions in `.claude/ai-
 - **-m flag**: only affects `kitex`/`hertz` plugins (server|client), has no effect on `go`/`api`/`server`/`service`
 
 ## aggo Quick Commands
-```bash
-# Full server generation (recommended one-liner)
-aggo proto -p go,api,server,kitex,hertz,service -m server -e ./idl/api ./idl/api/<svc>/<svc>.proto
 
-# Generate client code (calling other services)
-aggo proto -p kitex,hertz -m client -e ./idl/api ./idl/api/<svc>/<svc>.proto
+    # Full server generation (recommended one-liner)
+    aggo proto -p go,api,server,kitex,hertz,service -m server -e ./idl/api ./idl/api/<svc>/<svc>.proto
 
-# Post-generation
-go mod tidy && go build ./...
-```
+    # Generate client code (calling other services)
+    aggo proto -p kitex,hertz -m client -e ./idl/api ./idl/api/<svc>/<svc>.proto
+
+    # Post-generation
+    go mod tidy && go build ./...
 ```
 
 ### Step 5: Verify
 
 ```bash
 cd <project-name>
+go mod tidy
 go build ./...
 ```
 

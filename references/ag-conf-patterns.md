@@ -69,21 +69,35 @@ func NewAppConfig(binder ag_conf.IBinder) (*AppConfig, error) {
 }
 ```
 
-### 第 3 步：初始化
+### 第 3 步：fx 模块化
+
+采用 fx 依赖注入，由框架模块自动提供 `IBinder`：
 
 ```go
-func main() {
-    env, _ := ag_conf.NewStandardEnvironment()
-    ag_conf.LoadLocalConfigToState(env)
-    binder := ag_conf.NewConfigurationPropertiesBinder(env)
+// internal/config/zfx_config.go
+package config
 
-    cfg, err := config.NewAppConfig(binder)
-    if err != nil {
-        panic(err)
-    }
-    println(cfg.Server.Port)
-}
+import "go.uber.org/fx"
+
+var FxAppConfigModule = fx.Module("fx-app-conf-module",
+    fx.Provide(
+        NewAppConfig,     // fx 自动解析 IBinder 参数
+    ),
+)
 ```
+
+在 main.go 中只需声明框架 conf 模块（提供 IBinder）和自定义 config 模块：
+
+```go
+// cmd/server/main.go
+var mainFx = fx.Module("main",
+    fxs.FxAgConfModule,       // 框架层：提供 ag_conf.IBinder
+    // ... 其他模块
+    internal.FxInternalModule, // 内部层：含 config.FxAppConfigModule
+)
+```
+
+`NewAppConfig(binder ag_conf.IBinder)` — fx 自动注入 binder，无需手动创建 env。
 
 ---
 
@@ -146,6 +160,95 @@ pwd, err := env.GetRequiredProperty("datasource.password")
 ```
 
 > ⚠️ `GetProperty` 高频下有性能问题。**只在启动初始化时调用一次**，不要在每个请求中反复读取。运行时取配置值应通过 Bind 后的结构体字段访问。
+
+---
+
+## 项目中的目录与 fx 组装
+
+### 目录约定
+
+```
+project/
+├── cmd/server/
+│   ├── main.go                 # fx 模块总组装
+│   └── app.yml                 # 运行时配置
+└── internal/
+    ├── config/                  # 所有配置代码集中在此
+    │   ├── xxx_config.go       # 结构体 + Default + 构造函数
+    │   └── zfx_config.go       # fx 模块 Provide
+    └── zfx_internal.go          # 内部模块总入口，组装 config 子模块
+```
+
+每加一个配置模块就在 `internal/config/` 下新增对应的结构体文件和 fx 注册。
+
+### fx 组装链
+
+```
+main.go
+  ├── fxs.FxAgConfModule          ← 框架层：提供 ag_conf.IBinder
+  └── internal.FxInternalModule   ← 内部总入口
+        └── config.FxAppConfigModule  ← 注入自定义配置
+```
+
+`fxs.FxAgConfModule` 是框架自带的模块，**无需手动创建 env 或 binder**，注册后 IBinder 自动可用。
+
+### 自定义配置模块示例
+
+```go
+// internal/config/hzw_config.go
+package config
+
+import "gitlab.allinfinance.com/aifgo/ag-core/ag/ag_conf"
+
+const HzwKey = "hzw"
+
+type HzwConfig struct {
+    Org  string `required:"true"`
+    Type string `required:"true"`
+}
+
+func DefaultHzwConfig() HzwConfig {
+    return HzwConfig{Org: "ORG000", Type: "default"}
+}
+
+func NewHzwConfig(binder ag_conf.IBinder) (*HzwConfig, error) {
+    cfg := DefaultHzwConfig()
+    if err := binder.Bind(&cfg, HzwKey); err != nil {
+        return nil, err
+    }
+    return &cfg, nil
+}
+```
+
+```go
+// internal/config/zfx_config.go
+package config
+
+import "go.uber.org/fx"
+
+var FxAppConfigModule = fx.Module("fx-app-conf-module",
+    fx.Provide(NewHzwConfig),
+)
+```
+
+```go
+// internal/zfx_internal.go
+var FxInternalModule = fx.Module("fx-internal-module",
+    config.FxAppConfigModule,       // 配置最先加载
+    svcgen.FxServiceWithProxyModule(),
+    adpgen.FxAdapterModule(),
+)
+```
+
+### 消费配置
+
+任何组件通过构造函数参数注入即可：
+
+```go
+func NewSomeComponent(cfg *HzwConfig) *SomeComponent { ... }
+```
+
+fx 会自动将 `*HzwConfig` 注入。
 
 ---
 
