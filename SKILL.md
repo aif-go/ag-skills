@@ -17,6 +17,7 @@ This skill provides comprehensive ag-core microservices framework knowledge, opt
 
 Invoke when working with ag-core:
 - **Initializing projects**: `aggo new` + AI context injection (see [create-project](workflows/create-project.md))
+- **Syncing AI context**: update `.claude/` when skill ai-context is updated (see [update-ai-context](workflows/update-ai-context.md))
 - **Defining APIs**: protobuf IDL with gRPC + HTTP annotations
 - **Generating code**: `aggo proto` with all plugin/mode combinations
 - **Implementing business logic**: `internal/service/` layer
@@ -31,6 +32,10 @@ Load specific guides as needed:
 #### Create Project
 **File**: [workflows/create-project.md](workflows/create-project.md)
 **When**: User asks to create/init/scaffold a new ag-core project
+
+#### Sync AI Context
+**File**: [workflows/update-ai-context.md](workflows/update-ai-context.md)
+**When**: User asks to update/sync AI context to an existing project, or after ai-context has been updated
 
 ### Pattern Guides
 
@@ -73,7 +78,7 @@ Load specific guides as needed:
 #### 7. Configuration Patterns
 **File**: [references/ag-conf-patterns.md](references/ag-conf-patterns.md)
 **When**: Adding or reading configuration, creating config structs, using app.yml, hot-reload, binding config
-**Contains**: Three-part config pattern (struct+default+constructor), 4 value-tag styles, binding vs GetProperty, config priorities, hot-reload
+**Contains**: Three-part config pattern (struct+default+constructor), value-tag styles, binding vs GetProperty, config priorities
 
 #### Troubleshooting
 **File**: [troubleshooting/common-issues.md](troubleshooting/common-issues.md)
@@ -85,6 +90,11 @@ Load specific guides as needed:
 
 1. Follow [workflows/create-project.md](workflows/create-project.md)
 2. This includes: `aggo new` → inject `.claude/` AI context → verify build
+
+### Syncing AI Context to Existing Project
+
+1. Follow [workflows/update-ai-context.md](workflows/update-ai-context.md)
+2. This copies the latest ai-context files from skill to project's `.claude/ai-context/`
 
 ### Creating a New Service (in Existing Project)
 
