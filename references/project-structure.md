@@ -1,0 +1,80 @@
+# Project Structure
+
+## Standard Layout
+
+```
+<project>/
+├── api/                          # 生成的接口代码（不可手动修改）
+│   └── <service>/
+│       ├── <service>.pb.go                    # protobuf 消息结构体
+│       └── agserver_<service>_interface.go    # service 接口定义
+│
+├── cmd/
+│   └── server/
+│       ├── app.yml               # 服务配置
+│       ├── main.go               # 入口
+│       └── server                # 编译产物
+│
+├── idl/
+│   └── api/                      # Proto 接口定义（手动编写 ✍）
+│       └── <service>/
+│           └── <service>.proto
+│
+├── internal/
+│   ├── adpgen/                   # 生成的 adapter 层（不可修改）
+│   │   ├── zfx_adapter.go
+│   │   ├── adpinit/              # adapter 初始化
+│   │   │   ├── zfx_adapter_init.go
+│   │   │   ├── zfx_aghertz_*_adpinit.go
+│   │   │   └── zfx_agkitex_*_adpinit.go
+│   │   ├── hertz/                # Hertz (HTTP) adapter
+│   │   │   └── <service>/
+│   │   │       ├── aghertz_<service>_client.go
+│   │   │       ├── aghertz_<service>_fx.go
+│   │   │       └── aghertz_<service>_server.go
+│   │   └── kitex/                # Kitex (gRPC) adapter
+│   │       └── <service>/
+│   │           ├── agkitex_<service>.go
+│   │           ├── agkitex_<service>_agclient.go
+│   │           ├── agkitex_<service>_client.go
+│   │           ├── agkitex_<service>_fx.go
+│   │           └── agkitex_<service>_server.go
+│   │
+│   ├── svcgen/                   # 生成的 service 代理（不可修改）
+│   │   ├── zfx_service.go
+│   │   ├── zfx_agservice_proxy_<service>.go
+│   │   └── agservice_<service>_proxy.go
+│   │
+│   ├── service/                  # 业务逻辑（手动编写 ✍）
+│   │   └── agservice_<service>.go   ⭐ 不被覆盖，业务入口
+│   │
+│   ├── repository/               # 数据访问层
+│   │   └── idl/
+│   │       └── <service>.xlsx
+│   │
+│   ├── init.go
+│   └── zfx_internal.go
+│
+├── third_party/                  # Proto 第三方依赖
+├── go.mod
+└── go.sum
+```
+
+## File Responsibilities
+
+| 层 | 目录 | 职责 | 可否修改 |
+|----|------|------|----------|
+| **接口定义** | `idl/api/` | Proto 文件（gRPC + HTTP 定义） | ✅ 手动编写 |
+| **接口代码** | `api/` | pb.go + interface.go | ❌ aggo 生成 |
+| **Adapter** | `internal/adpgen/` | Kitex/Hertz 协议适配 | ❌ aggo 生成 |
+| **Service 代理** | `internal/svcgen/` | 依赖注入代理 | ❌ aggo 生成 |
+| **业务逻辑** | `internal/service/` | 业务实现 | ✅ 手动编写 |
+| **入口** | `cmd/server/` | main.go + 配置 | ✅ 手动编写 |
+
+## Key Rules
+
+1. **Proto 隔离**：每个服务一个 proto 文件，放在 `idl/api/<service>/`
+2. **生成不覆盖**：`agservice_*.go` 首次生成后不会重复覆盖，业务代码安全
+3. **生成重跑安全**：`adpgen/` 和 `svcgen/` 可以安全重新生成（会覆盖）
+4. **配置在 cmd**：配置文件统一放 `cmd/server/app.yml`
+5. **依赖在 go.mod**：所有依赖通过 go module 管理
