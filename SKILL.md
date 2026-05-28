@@ -113,7 +113,7 @@ Load specific guides as needed:
 ### Calling Other Microservices
 
 1. Copy callee's `.proto` to `idl/api/<service>/`
-2. `aggo proto -p hertz -m client ...` and `-p kitex -m client ...`
+2. `aggo proto -p kitex,hertz -m client ...`
 3. Use generated client code in service layer
 
 ## Key Principles
