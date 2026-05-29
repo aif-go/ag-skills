@@ -7,14 +7,14 @@
 syntax = "proto3";
 
 package student;
-option go_package = "./student";
+option go_package = "myproject/api/student";
 
 import "google/api/annotations.proto";
 
 service StudentService {
   rpc GetStudent(GetStudentReq) returns (GetStudentResp) {
     option (google.api.http) = {
-      get: "/student/get"
+      get: "student/get"
     };
   }
 }
@@ -32,16 +32,16 @@ message GetStudentResp {
 ### HTTP Methods
 ```proto
 // GET
-option (google.api.http) = { get: "/path" };
+option (google.api.http) = { get: "path" };
 
 // POST
 option (google.api.http) = {
-  post: "/path"
+  post: "path"
   body: "*"
 };
 
 // Path parameter
-option (google.api.http) = { get: "/student/:Id" };
+option (google.api.http) = { get: "student/:Id" };
 ```
 
 ## aggo Commands

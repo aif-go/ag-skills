@@ -14,7 +14,7 @@ Example: `idl/api/student/student.proto`
 syntax = "proto3";
 
 package student;
-option go_package = "./student";
+  option go_package = "myproject/api/student";
 
 import "google/api/annotations.proto";
 
@@ -22,18 +22,18 @@ import "google/api/annotations.proto";
 service StudentService {
   rpc GetStudent(GetStudentReq) returns (GetStudentResp) {
     option (google.api.http) = {
-      get: "/student/get"
+      get: "student/get"
     };
   }
   rpc CreateStudent(CreateStudentReq) returns (CreateStudentResp) {
     option (google.api.http) = {
-      post: "/student/create"
+      post: "student/create"
       body: "*"
     };
   }
   rpc DeleteStudent(DeleteStudentReq) returns (DeleteStudentResp) {
     option (google.api.http) = {
-      delete: "/student/:Id"
+      delete: "student/:Id"
     };
   }
 }
@@ -74,7 +74,7 @@ message DeleteStudentResp {
 ```proto
 rpc Get(GetReq) returns (GetResp) {
   option (google.api.http) = {
-    get: "/resource/get"
+    get: "resource/get"
   };
 }
 ```
@@ -83,8 +83,8 @@ rpc Get(GetReq) returns (GetResp) {
 ```proto
 rpc Create(CreateReq) returns (CreateResp) {
   option (google.api.http) = {
-    post: "/resource/create"
-    body: "*"    // "*" = 使用整个请求体
+    post: "resource/create"
+      body: "*"    // "*" = 使用整个请求体
   };
 }
 ```
@@ -93,7 +93,7 @@ rpc Create(CreateReq) returns (CreateResp) {
 ```proto
   rpc Delete(DeleteReq) returns (DeleteResp) {
     option (google.api.http) = {
-      delete: "/resource/:Id"
+      delete: "resource/:Id"
     };
   }
 }
@@ -107,7 +107,7 @@ message DeleteReq {
 ```proto
   rpc Update(UpdateReq) returns (UpdateResp) {
     option (google.api.http) = {
-      put: "/resource/:Id"
+      put: "resource/:Id"
       body: "*"
     };
   }
@@ -117,7 +117,7 @@ message DeleteReq {
 
 1. `syntax = "proto3";` - 必须是 proto3
 2. `package <name>;` - 包名
-3. `option go_package = "./<name>";` - Go 包路径
+3. `option go_package = "<module>/api/<name>";` - Go 包路径，需包含模块名
 4. `import "google/api/annotations.proto";` - HTTP 注解依赖
 
 ## Data Types
@@ -138,6 +138,6 @@ message DeleteReq {
 - Message name 用 PascalCase + Req/Resp 后缀：`GetStudentReq`
 - Field name 用 snake_case：`student_id`
 - 每个 service 一个 proto 文件
-- HTTP 路径用 kebab-case：`/student/get-detail`
+- HTTP 路径**不带 `/` 前缀**：`"student/get"` 而非 `"/student/get"`
 - **路径变量格式为 `:<FieldName>`**：如 `"/:Id"`，且请求消息中对应的字段名首字母必须大写
 - go_package 为完整模块路径
