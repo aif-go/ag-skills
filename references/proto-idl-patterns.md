@@ -139,5 +139,5 @@ message DeleteReq {
 - Field name 用 snake_case：`student_id`
 - 每个 service 一个 proto 文件
 - HTTP 路径**不带 `/` 前缀**：`"student/get"` 而非 `"/student/get"`
-- **路径变量格式为 `:<FieldName>`**：如 `"/:Id"`，且请求消息中对应的字段名首字母必须大写
+- **路径变量 `:<Name>` 必须与请求消息字段的 Go 导出名一致**（proto `stuno` → Go `Stuno` → 路径 `:Stuno`），否则路由匹配时无法正确绑定
 - go_package 为完整模块路径
