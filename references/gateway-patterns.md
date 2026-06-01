@@ -257,5 +257,5 @@ var FxInternalModule = fx.Module("fx-internal-module",
 
 - Kitex 实现层：[[kitex-patterns]]
 - Hertz 实现层：[[hertz-patterns]]
-- 数据库（Repository）：[[database-patterns]]
+- 数据库（DAO）：[[dao-usage]]
 - 项目结构：[[project-structure]]

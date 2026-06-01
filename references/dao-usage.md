@@ -24,7 +24,44 @@ type IStudentDao interface {
 }
 ```
 
-## 插入
+## 查询方式选择
+
+DAO 提供三种查询方式，按需选择：
+
+```
+查询需求 →
+├─ 简单等值查询（固定 WHERE 条件）
+│   └─ FindByStruct  — 零代码，自动拼接索引字段
+│      ✅ 运行时索引安全检查
+│      ❌ 无分页
+│      ❌ 不支持 LIKE / IN / BETWEEN
+│
+├─ 自定义查询（推荐默认）
+│   └─ FindByCustomerRule  — 命名 SQL + FieldMask 动态 WHERE
+│      ✅ LIKE / IN / BETWEEN / JOIN 全覆盖
+│      ✅ 运行时索引安全检查（ValidateLeadingCol）
+│      ✅ 分页内置（嵌入 db.Page 即可）
+│      ✅ 跨数据库 SQL（MYSQL/DB2 独立模板）
+│      ⚠️ 需编写 YAML + Arg/Res 类型 + 命名 SQL
+│
+└─ 轻量动态查询（无需预定义 YAML）
+    └─ FindByCondition  — WhereClauseBuilder 链式构建
+       ⚠️ 无索引安全校验
+       ⚠️ 不支持 LIKE（ConditionLike 未开放）
+       ⚠️ 依赖 GORM 生成 SQL，无跨库精确控制
+```
+
+| 能力 | FindByStruct | FindByCustomerRule | FindByCondition |
+|------|:---:|:---:|:---:|
+| 等值查询 | ✅ | ✅ | ✅ |
+| 动态条件 | ❌ | ✅ (FieldMask) | ✅ (链式) |
+| LIKE 模糊查询 | ❌ | ✅ | ❌ |
+| 分页 | ❌ | ✅ (内置) | ✅ (内置) |
+| 索引安全检查 | ✅ | ✅ ValidateLeadingCol | ❌ |
+| 跨数据库 SQL | ❌ | ✅ MYSQL/DB2 | ❌ |
+| 开发成本 | 零 | 中 | 低 |
+
+> **AI 默认推荐**：自定义查询优先用 `FindByCustomerRule`。它能确保运行时索引校验和跨数据库兼容，对生产环境更安全。
 
 ```go
 // 全字段插入（零值也会写入）
@@ -65,10 +102,11 @@ students, _ := dao.FindByStruct(ctx, &model.Student{Age: 18})
 即 YAML 中 `self_query_rules` 定义的自定义查询。
 
 ```go
-// 1. Builder 模式构造参数
-arg := new(model.StudentFindByAgeArg).
-    WithAge(18).
-    WithStuno(1001)
+// 1. 必须初始化 FieldMask，否则 WithXxx() 空指针
+arg := &model.StudentFindByAgeArg{
+    FieldMask: conditonwhere.NewFieldMask(),
+}
+arg.WithAge(18).WithStuno("S001")
 
 // 2. 执行命名 SQL
 result, err := dao.FindByCustomerRule(ctx, dao.FindByAgeNamingInfo, arg)
@@ -78,9 +116,11 @@ list := result.([]*model.StudentFindByAgeRes)
 ### 分页命名查询
 
 ```go
-arg := new(model.StudentFindByAgeWithPageArg).WithAge(18)
-arg.PageNum = 1
-arg.PageSize = 20
+arg := &model.StudentFindByAgeWithPageArg{
+    FieldMask: conditonwhere.NewFieldMask(),
+    Page:      gormdb.Page{PageNum: 1, PageSize: 20},
+}
+arg.WithAge(18)
 
 result, _ := dao.FindByCustomerRule(ctx, dao.FindByAgeWithPageNamingInfo, arg)
 pageRes := result.(*model.StudentFindByAgeWithPagePageRes)
