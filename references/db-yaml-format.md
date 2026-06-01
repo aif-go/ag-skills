@@ -53,9 +53,9 @@ self_query_rules:              # 可选：自定义查询
 
 | YAML type | Go 类型 | 额外导入 |
 |-----------|---------|---------|
-| `int` / `tinyint` / `smallint` | `int` | — |
+| `int` / `int32` / `tinyint` / `smallint` | `int` | — |
 | `int64` / `bigint` | `int64` | — |
-| `float` / `double` / `decimal` | `float64` | — |
+| `float` / `float32` / `double` / `float64` / `decimal` | `float64` | — |
 | `string` / `varchar` / `char` / `text` | `string` | — |
 | `bool` / `boolean` | `bool` | — |
 | `time` / `datetime` / `timestamp` / `date` | `time.Time` | `"time"` |
@@ -133,9 +133,7 @@ QueryByCondition:
   select_fields: "*"
   page: true
   dynamic_sql: true
-  sql_template: >
-    SELECT * FROM TM_USER
-    WHERE NAME = @Name AND AGE > @Age
+  sql_template: "SELECT * FROM TM_USER WHERE NAME = @Name AND AGE > @Age"
   Where_params:
     - colname: NAME
       paraname: Name
@@ -146,6 +144,8 @@ QueryByCondition:
       slice: false
       type: int
 ```
+
+> ⚠️ **`dynamic_sql: true + page: true` 时，`sql_template` 必须写成单行字符串**。YAML 的 `>` 折叠块会引入换行，gen-go-db 拼接 `LIMIT @Start,@End` 时也放在新行，导致生成的 Go 字符串内换行编译失败。单行用引号包裹即可。
 
 ## 人工编辑
 

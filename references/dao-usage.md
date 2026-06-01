@@ -8,21 +8,20 @@
 
 ```go
 type IStudentDao interface {
-    InsertOne(ctx, *model.Student) (int64, error)
-    InsertOneIgnoreZeroValCols(ctx, *model.Student) (int64, error)
-
-    UpdateByPrimaryKey(ctx, *model.Student) (int64, error)
-    UpdateByPrimaryKeyIngoreZeroValCols(ctx, *model.Student) (int64, error)
-
-    FindByPrimaryKey(ctx, id model.StudentPrimaryKey) (*model.Student, error)
-    FindByStruct(ctx, *model.Student) ([]*model.Student, error)
-    FindByCustomerRule(ctx, namingInfo *gormdb.NameingSqlArgInfo, args any) (any, error)
-    FindByCondition(ctx, cond *conditonwhere.WhereClauseBuilder,
+    InsertOne(ctx context.Context, entity *model.Student) (int64, error)
+    InsertOneIgnoreZeroValCols(ctx context.Context, entity *model.Student) (int64, error)
+    UpdateByPrimaryKey(ctx context.Context, entity *model.Student) (int64, error)
+    UpdateByPrimaryKeyIngoreZeroValCols(ctx context.Context, entity *model.Student) (int64, error)
+    FindByPrimaryKey(ctx context.Context, id model.StudentPrimaryKey) (*model.Student, error)
+    FindByStruct(ctx context.Context, entity *model.Student) ([]*model.Student, error)
+    FindByCustomerRule(ctx context.Context, namingInfo *gormdb.NameingSqlArgInfo, args any) (any, error)
+    FindByCondition(ctx context.Context, cond *conditonwhere.WhereClauseBuilder,
         order *gormdb.OrderBuilder, page *gormdb.Page) ([]*model.Student, *gormdb.PageResult, error)
-    FindFirstOneByCondition(ctx, cond *conditonwhere.WhereClauseBuilder,
+    FindFirstOneByCondition(ctx context.Context, cond *conditonwhere.WhereClauseBuilder,
         order *gormdb.OrderBuilder) (*model.Student, error)
 }
 ```
+> 注：`UpdateByPrimaryKeyIngoreZeroValCols` 方法名中 `Ingore` 为生成代码自身的拼写（少一个 `n`），非文档错误。
 
 ## 查询方式选择
 
@@ -64,11 +63,11 @@ DAO 提供三种查询方式，按需选择：
 > **AI 默认推荐**：自定义查询优先用 `FindByCustomerRule`。它能确保运行时索引校验和跨数据库兼容，对生产环境更安全。
 
 ```go
-// 全字段插入（零值也会写入）
-affected, _ := dao.InsertOne(ctx, &model.Student{Name: "张三", Age: 18})
+affected, err := dao.InsertOne(ctx, &model.Student{Name: "张三", Age: 18})
+if err != nil { /* handle */ }
 
 // 自动剔除零值列（主键、索引列不受影响）
-affected, _ := dao.InsertOneIgnoreZeroValCols(ctx, &model.Student{Name: "张三", Age: 18})
+affected, err = dao.InsertOneIgnoreZeroValCols(ctx, &model.Student{Name: "张三", Age: 18})
 ```
 
 ## 更新
@@ -118,7 +117,7 @@ list := result.([]*model.StudentFindByAgeRes)
 ```go
 arg := &model.StudentFindByAgeWithPageArg{
     FieldMask: conditonwhere.NewFieldMask(),
-    Page:      gormdb.Page{PageNum: 1, PageSize: 20},
+    Page:      gormdb.Page{PageNum: int64(1), PageSize: int64(20)},
 }
 arg.WithAge(18)
 
@@ -127,6 +126,83 @@ pageRes := result.(*model.StudentFindByAgeWithPagePageRes)
 // pageRes.ResultList   — 数据列表
 // pageRes.PageResult   — 分页信息（CurrentPage, PageSize, TotalCount, TotalPage）
 ```
+
+## 完整流程：新增自定义查询
+
+从头给一张表增加 `FindByCustomerRule` 自定义查询，三步走。
+
+### 步骤 1：编辑 YAML
+
+在 `repository/yaml/STUDENT.yaml` 的 `self_query_rules` 下新增：
+
+```yaml
+self_query_rules:
+  FindByAgeWithPage:
+    select_fields: '*'
+    page: true
+    where:
+      operator: AND
+      conditions:
+        - expr: AGE = @Age
+```
+
+- `select_fields`：`'*'` 返回全列，或指定列名逗号分隔
+- `page: true`：生成分页方法（嵌入 `db.Page` 的 Arg 类型）
+- `@Age`：参数名，自动驼峰转为 Go 字段 `Age`
+- 支持嵌套 WHERE：`{ operator: OR, conditions: [{ operator: AND, ... }, { ... }] }`
+
+### 步骤 2：重新生成
+
+```bash
+gen-go-db db -i ./internal/repository/yaml/STUDENT.yaml -o ./internal -m myproject/internal
+```
+
+自动更新：
+- `student_model.go` → 新增 `StudentFindByAgeWithPageArg`（嵌入 `db.Page` + `FieldMask`）、`StudentFindByAgeWithPagePageRes`（嵌入 `db.PageResult`）
+- `mysql_student_namingsql.go` → `MYSQL_Student_FindByAgeWithPage` + Count
+- `db2_student_namingsql.go` → `DB2_Student_FindByAgeWithPage` + Count
+- `student_constant.go` → `FindByAgeWithPageNamingInfo`
+- `student_dao.go` → `doFindByAgeWithPage` 方法 + `FindByCustomerRule` case 分支
+
+### 步骤 3：biz 层调用
+
+```go
+import (
+    "gitlab.allinfinance.com/aifgo/ag-core/contribute/agdb/conditonwhere"
+    dao2 "your-project/internal/repository/dao"
+)
+
+func (b *StudentBiz) ListStudent(ctx context.Context, req *pb.ListReq) (*pb.ListResp, error) {
+    // 1. 构造查询参数（必须初始化 FieldMask）
+    arg := &model.StudentFindByAgeWithPageArg{
+        FieldMask: conditonwhere.NewFieldMask(),
+        Page:      gormdb.Page{PageNum: req.PageNum, PageSize: req.PageSize},
+    }
+    arg.WithAge(int(req.Age))
+
+    // 2. 执行命名 SQL
+    result, err := b.studentDao.FindByCustomerRule(ctx, dao.FindByAgeWithPageNamingInfo, arg)
+    if err != nil {
+        return nil, err
+    }
+
+    // 3. 类型断言 + 转换
+    pageRes := result.(*model.StudentFindByAgeWithPagePageRes)
+    var data []*pb.Student
+    for _, m := range pageRes.ResultList {
+        var s pb.Student
+        copier.Copy(&s, m)
+        data = append(data, &s)
+    }
+    return &pb.ListResp{
+        TotalCount: pageRes.TotalCount,
+        TotalPage:  int32(pageRes.TotalPage),
+        Data:       data,
+    }, nil
+}
+```
+
+> ⚠️ **常见错误**：忘记 `FieldMask: conditonwhere.NewFieldMask()` → `WithXxx()` 空指针 panic
 
 ## 条件构建器（FindByCondition）
 
@@ -137,14 +213,14 @@ import "gitlab.allinfinance.com/aifgo/ag-core/contribute/agdb/conditonwhere"
 
 cond := conditonwhere.NewWhereClauseBuilder()
 if req.Name != "" {
-    cond.And("NAME = ?", req.Name)
+    cond.Eq("NAME", req.Name)
 }
 if req.Age > 0 {
-    cond.And("AGE > ?", req.Age)
+    cond.Gt("AGE", req.Age)
 }
 
 order := gormdb.NewOrderBuilder().Desc("ID")
-page := &gormdb.Page{PageNum: 1, PageSize: 20}
+page := &gormdb.Page{PageNum: int64(1), PageSize: int64(20)}
 
 list, pageResult, err := dao.FindByCondition(ctx, cond, order, page)
 ```

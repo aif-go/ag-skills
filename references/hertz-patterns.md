@@ -218,7 +218,7 @@ func SortAndApplyMiddleware(c *client.Client, prioritizedMws []PrioritizedClient
 ```go
 func handler(ctx context.Context, c *app.RequestContext) {
     var req CreateReq
-    if err := c.BindByContentType(&in); err != nil { /* ... */ }
+    if err := c.BindByContentType(&req); err != nil { /* ... */ }
     resp, err := service.Create(ctx, &req)
     c.JSON(consts.StatusOK, resp)
 }
@@ -229,8 +229,8 @@ func handler(ctx context.Context, c *app.RequestContext) {
 ```go
 func handler(ctx context.Context, c *app.RequestContext) {
     var req GetReq
-    c.BindQuery(&in)    // 查询参数 ?Id=1
-    c.BindPath(&in)     // 路径参数 /student/:Id
+    c.BindQuery(&req)    // 查询参数 ?Id=1
+    c.BindPath(&req)     // 路径参数 /student/:Id
     resp, err := service.Get(ctx, &req)
     c.JSON(consts.StatusOK, resp)
 }

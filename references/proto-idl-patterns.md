@@ -84,7 +84,7 @@ rpc Get(GetReq) returns (GetResp) {
 rpc Create(CreateReq) returns (CreateResp) {
   option (google.api.http) = {
     post: "resource/create"
-      body: "*"    // "*" = 使用整个请求体
+    body: "*"    // "*" = 使用整个请求体
   };
 }
 ```
@@ -97,9 +97,11 @@ rpc Create(CreateReq) returns (CreateResp) {
     };
   }
 }
-// DeleteReq 中必须有 Id 字段:
+// DeleteReq 中必须有 id 字段:
+// proto `id` → Go `Id` → 路径变量 `:Id` 匹配 Go 导出名
+```proto
 message DeleteReq {
-  int64 Id = 1;
+  int64 id = 1;
 }
 ```
 
