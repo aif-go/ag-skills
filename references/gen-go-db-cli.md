@@ -26,6 +26,9 @@ gen-go-db db -i <yaml-path> -o <output-dir> -m <module> [options]
 # 基本用法：YAML 目录 → 全部表
 gen-go-db db -i ./repository/yaml -o ./ -m myproject
 
+# YAML 在 internal/ 下时：
+gen-go-db db -i ./internal/repository/yaml -o ./internal -m myproject
+
 # 单文件
 gen-go-db db -i ./repository/yaml/TM_USER.yaml -o ./ -m myproject
 
@@ -37,6 +40,8 @@ gen-go-db db -i ./repository/yaml -o ./ -m myproject -d mysql
 ```
 
 ## 输出文件
+
+**`-o` 自动拼接 `repository/model/` 和 `repository/dao/`**。例如 `-o ./internal` 输出到 `internal/repository/`。
 
 对于表 `STUDENT`，生成 6 个文件：
 
@@ -53,6 +58,8 @@ repository/
 ```
 
 所有生成文件有 `DO NOT EDIT` 标记，不可手动修改。
+
+> ⚠️ 生成代码的 import 路径为 `<module>/repository/model`，不含 `-o` 前缀。如果输出到子目录（如 `-o ./internal`），生成后需修正 import 为 `<module>/internal/repository/model`。
 
 ## 相关参考
 

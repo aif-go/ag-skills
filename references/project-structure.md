@@ -53,9 +53,21 @@
 │   │   └── zfx_biz.go             # fx 模块注册
 │   │
 │   ├── repository/               # 数据访问层
-│   │   └── idl/
-│   │       └── <service>.xlsx
+│   │   ├── yaml/                   # 表 YAML 定义（手动编写 ✍）
+│   │   │   └── <Table>.yaml
+│   │   ├── model/                  # Model 结构体（gen-go-db 生成）
+│   │   │   └── <table>_model.go
+│   │   ├── dao/                    # DAO 接口 + 实现（gen-go-db 生成）
+│   │   │   ├── <table>_dao.go      # CRUD 接口 + 实现
+│   │   │   ├── <table>_constant.go # 命名 SQL 注册
+│   │   │   ├── <table>_namingsql.go
+│   │   │   ├── mysql_<table>_namingsql.go
+│   │   │   └── db2_<table>_namingsql.go
+│   │   └── dao/zfx_dao.go          # DAO fx 模块（手动编写 ✍）
 │   │
+│   ├── config/                    # 配置层（手动编写 ✍）
+│   │   ├── <module>_config.go
+│   │   └── zfx_config.go
 │   ├── init.go
 │   └── zfx_internal.go
 │
@@ -74,6 +86,11 @@
 | **Service 代理** | `internal/svcgen/` | 依赖注入代理 | ❌ aggo 生成 |
 | **业务逻辑** | `internal/biz/` | 业务实现、编排、Gateway 接口定义 | ✅ 手动编写 |
 | **入口** | `internal/service/` | 薄层，参数适配后委托 biz | ✅ 手动编写 |
+| **配置** | `internal/config/` | 配置结构体 + fx 模块 | ✅ 手动编写 |
+| **表定义** | `internal/repository/yaml/` | YAML 表结构定义 | ✅ 手动编写 |
+| **Model** | `internal/repository/model/` | GORM Model 结构体 | ❌ gen-go-db 生成 |
+| **DAO** | `internal/repository/dao/` | CRUD 接口 + 实现 | ❌ gen-go-db 生成 |
+| **DAO fx** | `internal/repository/dao/zfx_dao.go` | DAO fx 模块注册 | ✅ 手动编写 |
 | **入口** | `cmd/server/` | main.go + 配置 | ✅ 手动编写 |
 
 ## Key Rules

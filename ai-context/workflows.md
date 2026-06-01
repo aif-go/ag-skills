@@ -67,6 +67,7 @@ When calling other microservices:
 |---------|----------|
 | Create project | 1 |
 | Add API service | 1 + 2 + 3 + 5 |
-| Call other service | 4 + 5 |
+| Add database table | 7 + 8 + 5 |
+| Call external service | 4 + 6 + 5 |
 | Regenerate code | 2 + 3 |
 | Add protobuf field | 2 + 3 + 5 |

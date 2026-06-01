@@ -103,7 +103,11 @@ project/
 │   ├── adpgen/       # 生成的 adapter（不可修改）
 │   ├── svcgen/       # 生成的 service 代理（不可修改）
 │   ├── biz/          # 业务逻辑（手动编写 ✍）
-│   └── service/      # 入口薄层（手动编写 ✍）
+│   ├── service/      # 入口薄层（手动编写 ✍）
+│   ├── repository/   # 数据访问层
+│   │   ├── yaml/     # 表 YAML 定义（手动编写 ✍）
+│   │   ├── model/    # Model（gen-go-db 生成）
+│   │   └── dao/      # DAO（gen-go-db 生成）
 └── third_party/      # proto 依赖
 ```
 
