@@ -6,15 +6,17 @@ User asks to create a new ag-core project, scaffold a microservice, or init an a
 
 ## Workflow
 
-### Step 1: Gather Input
+### Step 1: Gather Input (MUST confirm)
 
-Ask the user (or use defaults):
+Ask the user for all three inputs. Show suggested defaults but require explicit confirmation. **Do NOT proceed to Step 2 until the user confirms.**
 
-| Input | Question | Default |
-|-------|----------|---------|
-| Project name | "What's the project name?" | — |
-| Template repo | "Template repo URL?" | `http://gitlab.allinfinance.com/aifgo/ag-layout-demo.git` |
-| Template branch | "Template branch?" | `base` |
+| Input | Question | Suggested |
+|-------|----------|-----------|
+| Project name | "项目名是什么？" | — |
+| Template repo | "模板仓库 URL？" | `http://gitlab.allinfinance.com/aifgo/ag-layout-demo.git` |
+| Template branch | "模板分支？" | `base` |
+
+Confirm: "使用模板 `<repo>` @ `<branch>` 创建项目 `<name>`，确认吗？"
 
 ### Step 2: Run aggo new
 
