@@ -45,8 +45,12 @@
 │   │   ├── zfx_agservice_proxy_<service>.go
 │   │   └── agservice_<service>_proxy.go
 │   │
-│   ├── service/                  # 业务逻辑（手动编写 ✍）
-│   │   └── agservice_<service>.go   ⭐ 不被覆盖，业务入口
+│   ├── service/                  # 入口薄层（委托 biz，手动编写 ✍）
+│   │   └── agservice_<service>.go   ⭐ 不被覆盖
+│   │
+│   ├── biz/                       # 业务逻辑层（手动编写 ✍）
+│   │   ├── <service>_biz.go       # 业务实现 + 编排
+│   │   └── zfx_biz.go             # fx 模块注册
 │   │
 │   ├── repository/               # 数据访问层
 │   │   └── idl/
@@ -68,7 +72,8 @@
 | **接口代码** | `api/` | pb.go + interface.go | ❌ aggo 生成 |
 | **Adapter** | `internal/adpgen/` | Kitex/Hertz 协议适配 | ❌ aggo 生成 |
 | **Service 代理** | `internal/svcgen/` | 依赖注入代理 | ❌ aggo 生成 |
-| **业务逻辑** | `internal/service/` | 业务实现 | ✅ 手动编写 |
+| **业务逻辑** | `internal/biz/` | 业务实现、编排、Gateway 接口定义 | ✅ 手动编写 |
+| **入口** | `internal/service/` | 薄层，参数适配后委托 biz | ✅ 手动编写 |
 | **入口** | `cmd/server/` | main.go + 配置 | ✅ 手动编写 |
 
 ## Key Rules
@@ -78,3 +83,17 @@
 3. **生成重跑安全**：`adpgen/` 和 `svcgen/` 可以安全重新生成（会覆盖）
 4. **配置在 cmd**：配置文件统一放 `cmd/server/app.yml`
 5. **依赖在 go.mod**：所有依赖通过 go module 管理
+
+---
+
+## 进阶：跨服务调用时的结构扩展
+
+当需要调用其他微服务或接入基础设施时，在 `internal/` 下扩展：
+
+```
+internal/
+├── gateway/    # 实现 biz 定义的 Gateway 接口（协议适配）
+├── clients/    # 创建原生 client + 连接配置 + fx 注册
+```
+
+> 详见 [[gateway-patterns]]。

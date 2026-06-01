@@ -74,12 +74,19 @@ aggo proto -p kitex,hertz -m client -e ./idl/api ./idl/api/student/student.proto
 ## Service Implementation
 
 ```go
-// internal/service/agservice_studentservice.go
-// 此文件不会被 aggo proto 覆盖，业务逻辑在此编写
+// internal/biz/student_biz.go — 业务逻辑
+type StudentBiz struct { /* 注入 repository, gateway 等 */ }
 
-func (s *StudentService) GetStudent(ctx context.Context, req *pb.GetStudentReq) (*pb.GetStudentResp, error) {
-    // 业务逻辑
+func (b *StudentBiz) GetStudent(ctx context.Context, req *pb.GetStudentReq) (*pb.GetStudentResp, error) {
     return &pb.GetStudentResp{Id: req.Id, Name: "result"}, nil
+}
+
+// internal/service/agservice_studentservice.go — 薄层入口
+// 此文件不会被 aggo proto 覆盖
+type StudentServiceImpl struct { Biz *StudentBiz }
+
+func (s *StudentServiceImpl) GetStudent(ctx context.Context, req *pb.GetStudentReq) (*pb.GetStudentResp, error) {
+    return s.Biz.GetStudent(ctx, req)
 }
 ```
 
@@ -95,7 +102,8 @@ project/
 ├── internal/
 │   ├── adpgen/       # 生成的 adapter（不可修改）
 │   ├── svcgen/       # 生成的 service 代理（不可修改）
-│   └── service/      # 业务逻辑（手动编写 ✍）
+│   ├── biz/          # 业务逻辑（手动编写 ✍）
+│   └── service/      # 入口薄层（手动编写 ✍）
 └── third_party/      # proto 依赖
 ```
 
@@ -129,7 +137,7 @@ func NewMyConfig(binder ag_conf.IBinder) (*MyConfig, error) {
 
 - Proto 文件在 `idl/api/<service>/` 下手动编写
 - adpgen/ svcgen/ 目录为生成代码，不可手动修改
-- 业务逻辑统一写在 `internal/service/agservice_*.go`
+- 业务逻辑统一写在 `internal/biz/`，service/ 只做委托
 - `-p` 支持逗号分隔多值（如 `-p go,api,server`）
 - `-m` 仅对 kitex/hertz 有效，控制生成 server 端还是 client 端
 - `-p service` 生成的 `agservice_*.go` 不覆盖已有文件

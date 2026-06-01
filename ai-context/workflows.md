@@ -44,11 +44,12 @@ When calling other microservices:
 ## 5. Implement Business Logic
 
 ```
-1. Write logic in internal/service/agservice_<service>.go
-2. Use generated client code for RPC calls
-3. Access database through repository layer
-4. Write tests
-5. go build ./...
+1. Write business logic in internal/biz/<service>_biz.go
+2. Wire thin layer in internal/service/agservice_<service>.go (delegate to biz)
+3. Use generated client code for RPC calls (via Gateway pattern)
+4. Access database through repository layer
+5. Write tests
+6. go build ./...
 ```
 
 ## 6. Build & Run

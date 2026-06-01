@@ -238,6 +238,8 @@ nacos:
 4. **配置统一在 app.yml** — kitex server/client 配置前缀分别为 `kitex.server` / `kitex.client`
 5. **元数据透传使用框架机制** — 不在业务代码中手动处理 metadata
 
+> **项目级组织**：客户端创建和配置应在 `internal/clients/` 中统一管理（工厂模式 + ClientsConfig + SD/直连切换）。详见 [[gateway-patterns]]#clients 层。
+
 ## 相关文件
 
 - 代码生成：[[code-generation]]

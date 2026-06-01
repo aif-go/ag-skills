@@ -62,7 +62,7 @@ This is an ag-core microservice project. Follow the instructions in `.claude/ai-
 ## Quick Rules
 - **Proto-First**: define `.proto` before writing any code
 - **Never edit** generated code in `adpgen/` or `svcgen/`
-- **Business logic** only in `internal/service/`
+- **Business logic** in `internal/biz/` (delegate from `internal/service/`)
 - **Post-generation**: always `go mod tidy && go build ./...`
 - **-m flag**: only affects `kitex`/`hertz` plugins (server|client), has no effect on `go`/`api`/`server`/`service`
 
@@ -97,7 +97,7 @@ Inform the user:
 - Next steps:
   1. Define API: create `.proto` in `idl/api/<service>/`
   2. Generate code: `aggo proto -p go,api,server,kitex,hertz,service -m server ...`
-  3. Implement logic: edit `internal/service/agservice_*.go`
+  3. Implement logic: `internal/biz/` for business logic, `internal/service/` for thin layer
   4. Build & run: `cd cmd/server && go build && ./server`
 
 ## Resulting .claude/ Structure

@@ -301,6 +301,8 @@ var FxAgHertzServerModule = fx.Module("fx_aghertz_server",
 4. **Handler 自动绑定请求** — `BindByContentType` (POST) 或 `BindQuery` (GET)
 5. **每个 RPC 对应一个 HTTP 路由** — 通过 `google.api.http` 注解定义
 
+> **项目级组织**：客户端创建和配置应在 `internal/clients/` 中统一管理（工厂模式 + ClientsConfig + SD/直连切换）。详见 [[gateway-patterns]]#clients 层。
+
 ## 完整请求生命周期
 
 ```

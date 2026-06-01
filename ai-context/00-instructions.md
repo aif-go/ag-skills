@@ -24,9 +24,9 @@
 - `-p service` generates `agservice_*.go` once, will not overwrite
 
 ### Implementation
-- 业务逻辑写在 `internal/service/agservice_*.go`
+- 业务逻辑写在 `internal/biz/`，`internal/service/` 只做薄层委托
 - 生成代码（adpgen/ svcgen/）不可手动修改
-- 微服务调用使用生成的 client 代码
+- 微服务调用遵循 Gateway 模式（biz 接口 → gateway 实现 → clients 工厂）
 
 ### Documentation
 - ALWAYS generate README.md for new services
@@ -60,11 +60,12 @@ For complete implementation patterns, refer to [SKILL.md](../SKILL.md):
 - Hertz → [hertz-patterns.md](../references/hertz-patterns.md)
 - Database → [db-yaml-format.md](../references/db-yaml-format.md) | [gen-go-db-cli.md](../references/gen-go-db-cli.md) | [dao-usage.md](../references/dao-usage.md)
 - Configuration → [ag-conf-patterns.md](../references/ag-conf-patterns.md)
+- Gateway Pattern → [gateway-patterns.md](../references/gateway-patterns.md)
 
 ## Avoid
 
 - 手动修改 adpgen/ svcgen/ 目录的生成代码
 - 跳过 post-generation 步骤（mod tidy、build verify）
-- 在非 service/ 层写业务逻辑
+- 业务逻辑直接写在 service/ 而不走 biz/ 层
 - 忘记定义 proto 的 http annotation 就生成 HTTP 服务
 - 拼接字符串构造 aggo 命令（必须用独立参数）

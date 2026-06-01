@@ -90,6 +90,11 @@ Load specific guides as needed:
 **When**: Adding or reading configuration, creating config structs, using app.yml, hot-reload, binding config
 **Contains**: Three-part config pattern (struct+default+constructor), value-tag styles, binding vs GetProperty, config priorities
 
+#### 10. Gateway Pattern
+**File**: [references/gateway-patterns.md](references/gateway-patterns.md)
+**When**: Calling other microservices, organizing biz/gateway/clients layers, integrating Redis/Kafka, defining Gateway interfaces
+**Contains**: Three-layer pattern (biz interface → gateway impl → clients factory), ClientsConfig, copier conversion, SD/direct switching
+
 #### Troubleshooting
 **File**: [troubleshooting/common-issues.md](troubleshooting/common-issues.md)
 **When**: aggo proto errors, compile failures, runtime issues, debugging
@@ -110,32 +115,34 @@ Load specific guides as needed:
 
 1. Define proto in `idl/api/<service>/`
 2. Generate code with `aggo proto` (one command, see code-generation.md)
-3. Implement logic in `internal/service/agservice_*.go`
-4. `go mod tidy && go build ./...`
+3. Implement business logic in `internal/biz/<service>_biz.go`
+4. Wire thin layer in `internal/service/agservice_*.go` (delegate to biz)
+5. `go mod tidy && go build ./...`
 
 ### Adding a New API Service
 
 1. Create `idl/api/<service>/<service>.proto`
 2. Define gRPC service + HTTP annotations
 3. Run full `aggo proto` pipeline
-4. Implement in `internal/service/`
+4. Implement biz + service layers as above
 
 ### Calling Other Microservices
 
 1. Copy callee's `.proto` to `idl/api/<service>/`
 2. `aggo proto -p kitex,hertz -m client ...`
-3. Use generated client code in service layer
+3. Follow Gateway Pattern: clients/ factory → gateway/ impl → biz/ orchestration
+   (see [[gateway-patterns]])
 
 ## Key Principles
 
 ### Always Follow
 - Proto-First: define `.proto` before any code
-- Service layer only: business logic in `internal/service/`
+- service/ is thin layer: delegate to biz/ for business logic
 - Never edit generated code (adpgen/ svcgen/)
 - Post-generation: `go mod tidy && go build ./...`
 
 ### Never Do
-- Put business logic outside `internal/service/`
+- Put business logic in `internal/service/` (use biz/)
 - Manually edit `adpgen/` or `svcgen/` files
 - Skip `go mod tidy` after generation
 - Forget HTTP annotations when generating Hertz code
