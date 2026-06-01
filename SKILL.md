@@ -13,6 +13,8 @@ allowed-tools:
 
 This skill provides comprehensive ag-core microservices framework knowledge, optimized for AI agents helping developers build production-ready services with protobuf IDL, Kitex (gRPC), and Hertz (HTTP).
 
+> **⚠️ 项目本地规则优先**: 在执行任何开发任务前，先检查项目 `.claude/ai-context/00-instructions.md` 中的规则。项目级别的规则（如目录约定、禁止项）**覆盖**本 skill 中的通用指导。
+
 ## When to Use This Skill
 
 Invoke when working with ag-core:

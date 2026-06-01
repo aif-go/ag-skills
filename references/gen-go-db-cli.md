@@ -16,7 +16,7 @@ gen-go-db db -i <yaml-path> -o <output-dir> -m <module> [options]
 |------|:----:|--------|------|
 | `-i` / `--input` | ✅ | — | YAML 文件路径或目录 |
 | `-o` / `--output` | ✅ | — | 输出目录（自动拼接 `repository/model/` 和 `repository/dao/`） |
-| `-m` / `--module` | ✅ | — | Go 模块名，影响 import 路径 |
+| `-m` / `--module` | ✅ | — | Go 模块名，影响 import 路径和 internal 前缀 |
 | `-T` / `--table` | ❌ | 全部表 | 指定表名，逗号分隔多个 |
 | `-d` / `--dbtype` | ❌ | mysql+db2 | 数据库类型：`mysql` / `db2` |
 
@@ -26,8 +26,8 @@ gen-go-db db -i <yaml-path> -o <output-dir> -m <module> [options]
 # 基本用法：YAML 目录 → 全部表
 gen-go-db db -i ./repository/yaml -o ./ -m myproject
 
-# YAML 在 internal/ 下时：
-gen-go-db db -i ./internal/repository/yaml -o ./internal -m myproject
+# YAML 在 internal/ 下时，-m 需包含 internal 前缀以生成正确的 import 路径：
+gen-go-db db -i ./internal/repository/yaml -o ./internal -m myproject/internal
 
 # 单文件
 gen-go-db db -i ./repository/yaml/TM_USER.yaml -o ./ -m myproject
@@ -59,7 +59,7 @@ repository/
 
 所有生成文件有 `DO NOT EDIT` 标记，不可手动修改。
 
-> ⚠️ 生成代码的 import 路径为 `<module>/repository/model`，不含 `-o` 前缀。如果输出到子目录（如 `-o ./internal`），生成后需修正 import 为 `<module>/internal/repository/model`。
+> `-m` 同时决定生成代码的 import 前缀。若 `repository/` 在 `internal/` 下，`-m` 需包含 `/internal`，如 `-m myproject/internal`。
 
 ## 相关参考
 

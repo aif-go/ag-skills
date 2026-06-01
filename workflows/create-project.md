@@ -86,7 +86,11 @@ go mod tidy
 go build ./...
 ```
 
-### Step 6: Report Result
+### Step 6: Read Project Rules
+
+After verification, **read `.claude/ai-context/00-instructions.md`** to learn the project's local rules before continuing with any further development tasks (defining APIs, implementing logic, etc.).
+
+### Step 7: Report Result
 
 Inform the user:
 
