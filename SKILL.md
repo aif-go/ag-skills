@@ -64,10 +64,20 @@ Load specific guides as needed:
 **When**: Using Hertz for HTTP services, adding middleware, routing, request validation
 **Contains**: HTTP routing, ServerConfigurator assembly, middleware injection, request binding, client calls
 
-#### 6. Database Patterns
-**File**: [references/database-patterns.md](references/database-patterns.md)
-**When**: Database access, Repository layer, transactions, GORM integration
-**Contains**: Repository.DB(ctx) pattern, transaction propagation, AOP transactions, pagination, fx injection
+#### 6. Table YAML Definition
+**File**: [references/db-yaml-format.md](references/db-yaml-format.md)
+**When**: Defining table structures, designing YAML table definitions, adding indexes/constraints, writing custom queries
+**Contains**: YAML format, column definition, type mapping, indexes, self_query_rules, dynamic SQL templates
+
+#### 7. gen-go-db CLI
+**File**: [references/gen-go-db-cli.md](references/gen-go-db-cli.md)
+**When**: Running `gen-go-db db` to generate Model/DAO from YAML definitions
+**Contains**: Command syntax, parameters, output files, usage examples
+
+#### 8. DAO Usage Guide
+**File**: [references/dao-usage.md](references/dao-usage.md)
+**When**: Using generated DAO for CRUD, calling named SQL, dynamic query conditions, pagination, transactions
+**Contains**: InsertOne/Update/FindByPrimaryKey/FindByStruct/FindByCustomerRule/FindByCondition, fx injection, transactions
 
 ### Supporting Resources
 
@@ -75,7 +85,7 @@ Load specific guides as needed:
 **File**: [best-practices/overview.md](best-practices/overview.md)
 **When**: Production deployment, code quality, security hardening
 
-#### 7. Configuration Patterns
+#### 9. Configuration Patterns
 **File**: [references/ag-conf-patterns.md](references/ag-conf-patterns.md)
 **When**: Adding or reading configuration, creating config structs, using app.yml, hot-reload, binding config
 **Contains**: Three-part config pattern (struct+default+constructor), value-tag styles, binding vs GetProperty, config priorities
