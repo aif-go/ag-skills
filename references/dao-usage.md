@@ -21,32 +21,59 @@ type IStudentDao interface {
         order *gormdb.OrderBuilder) (*model.Student, error)
 }
 ```
+
 > 注：`UpdateByPrimaryKeyIngoreZeroValCols` 方法名中 `Ingore` 为生成代码自身的拼写（少一个 `n`），非文档错误。
 
-## 查询方式选择
+## 快速开始
 
-DAO 提供三种查询方式，按需选择：
+### 插入
+
+```go
+// 全字段插入（零值也会写入）
+affected, err := dao.InsertOne(ctx, &model.Student{Name: "张三", Age: 18})
+
+// 自动剔除零值列（主键、索引列不受影响）
+affected, err = dao.InsertOneIgnoreZeroValCols(ctx, &model.Student{Name: "张三", Age: 18})
+```
+
+### 更新
+
+```go
+// 根据主键更新（需传入主键值，否则报错 "primary key is required"）
+dao.UpdateByPrimaryKey(ctx, &model.Student{Id: 1, Name: "李四"})
+
+// 忽略零值更新
+dao.UpdateByPrimaryKeyIngoreZeroValCols(ctx, &model.Student{Id: 1, Name: "李四"})
+```
+
+### 按主键查询
+
+```go
+student, err := dao.FindByPrimaryKey(ctx, model.StudentPrimaryKey(1))
+// 未找到返回 (nil, nil)，非 ErrRecordNotFound
+```
+
+## 查询
+
+### 查询方式选择
 
 ```
 查询需求 →
 ├─ 简单等值查询（固定 WHERE 条件）
 │   └─ FindByStruct  — 零代码，自动拼接索引字段
 │      ✅ 运行时索引安全检查
-│      ❌ 无分页
-│      ❌ 不支持 LIKE / IN / BETWEEN
+│      ❌ 无分页，不支持 LIKE / IN / BETWEEN
 │
-├─ 自定义查询（推荐默认）
+├─ 自定义查询（默认推荐）
 │   └─ FindByCustomerRule  — 命名 SQL + FieldMask 动态 WHERE
-│      ✅ LIKE / IN / BETWEEN / JOIN 全覆盖
+│      ✅ LIKE / IN / BETWEEN 全覆盖 + 分页内置
 │      ✅ 运行时索引安全检查（ValidateLeadingCol）
-│      ✅ 分页内置（嵌入 db.Page 即可）
 │      ✅ 跨数据库 SQL（MYSQL/DB2 独立模板）
 │      ⚠️ 需编写 YAML + Arg/Res 类型 + 命名 SQL
 │
 └─ 轻量动态查询（无需预定义 YAML）
     └─ FindByCondition  — WhereClauseBuilder 链式构建
-       ⚠️ 无索引安全校验
-       ⚠️ 不支持 LIKE（ConditionLike 未开放）
+       ⚠️ 无索引安全校验，不支持 LIKE
        ⚠️ 依赖 GORM 生成 SQL，无跨库精确控制
 ```
 
@@ -55,50 +82,26 @@ DAO 提供三种查询方式，按需选择：
 | 等值查询 | ✅ | ✅ | ✅ |
 | 动态条件 | ❌ | ✅ (FieldMask) | ✅ (链式) |
 | LIKE 模糊查询 | ❌ | ✅ | ❌ |
-| 分页 | ❌ | ✅ (内置) | ✅ (内置) |
-| 索引安全检查 | ✅ | ✅ ValidateLeadingCol | ❌ |
+| 分页 | ❌ | ✅ | ✅ |
+| 索引安全检查 | ✅ | ✅ | ❌ |
 | 跨数据库 SQL | ❌ | ✅ MYSQL/DB2 | ❌ |
 | 开发成本 | 零 | 中 | 低 |
 
-> **AI 默认推荐**：自定义查询优先用 `FindByCustomerRule`。它能确保运行时索引校验和跨数据库兼容，对生产环境更安全。
+> **AI 默认推荐**：自定义查询优先用 `FindByCustomerRule`。运行时索引校验 + 跨数据库兼容，生产环境更安全。
+
+### FindByStruct — 简单等值查询
+
+根据实体中非零值的索引列/主键列查询。先检查主键 → 再检查索引列 → 附加 AND 条件。**运行时索引安全校验**。
 
 ```go
-affected, err := dao.InsertOne(ctx, &model.Student{Name: "张三", Age: 18})
-if err != nil { /* handle */ }
-
-// 自动剔除零值列（主键、索引列不受影响）
-affected, err = dao.InsertOneIgnoreZeroValCols(ctx, &model.Student{Name: "张三", Age: 18})
-```
-
-## 更新
-
-```go
-// 根据主键更新（需传入主键值，否则报错 "primary key is required"）
-affected, _ := dao.UpdateByPrimaryKey(ctx, &model.Student{Id: 1, Name: "李四"})
-
-// 忽略零值更新
-affected, _ := dao.UpdateByPrimaryKeyIngoreZeroValCols(ctx, &model.Student{Id: 1, Name: "李四"})
-```
-
-## 按主键查询
-
-```go
-student, err := dao.FindByPrimaryKey(ctx, model.StudentPrimaryKey(1))
-// 未找到返回 (nil, nil)，非 ErrRecordNotFound
-```
-
-## 按实体查询（FindByStruct）
-
-```go
-// 根据实体中非零值的索引列/主键列查询
 students, _ := dao.FindByStruct(ctx, &model.Student{Age: 18})
 ```
 
-查询逻辑：先检查主键 → 再检查索引列（取第一个命中索引的） → 其他非零普通列附加为 AND 条件。**编译时索引安全检查**，确保查询必然走索引，否则返回 `"query not use any index"`。
+### FindByCustomerRule — 命名 SQL（推荐默认）
 
-## 命名 SQL（FindByCustomerRule）
+YAML 中 `self_query_rules` 定义的查询。支持非分页和分页两种模式。
 
-即 YAML 中 `self_query_rules` 定义的自定义查询。
+**非分页**：
 
 ```go
 // 1. 必须初始化 FieldMask，否则 WithXxx() 空指针
@@ -107,12 +110,12 @@ arg := &model.StudentFindByAgeArg{
 }
 arg.WithAge(18).WithStuno("S001")
 
-// 2. 执行命名 SQL
-result, err := dao.FindByCustomerRule(ctx, dao.FindByAgeNamingInfo, arg)
-list := result.([]*model.StudentFindByAgeRes)
+// 2. 执行
+result, _ := dao.FindByCustomerRule(ctx, dao.FindByAgeNamingInfo, arg)
+list := result.([]*model.StudentFindByAgeRes) // 类型断言
 ```
 
-### 分页命名查询
+**分页**：
 
 ```go
 arg := &model.StudentFindByAgeWithPageArg{
@@ -124,14 +127,14 @@ arg.WithAge(18)
 result, _ := dao.FindByCustomerRule(ctx, dao.FindByAgeWithPageNamingInfo, arg)
 pageRes := result.(*model.StudentFindByAgeWithPagePageRes)
 // pageRes.ResultList   — 数据列表
-// pageRes.PageResult   — 分页信息（CurrentPage, PageSize, TotalCount, TotalPage）
+// pageRes.PageResult   — CurrentPage, PageSize, TotalCount, TotalPage
 ```
 
-## 完整流程：新增自定义查询
+> ⚠️ **常见错误**：忘记 `FieldMask: conditonwhere.NewFieldMask()` → `WithXxx()` 空指针 panic。
 
-从头给一张表增加 `FindByCustomerRule` 自定义查询，三步走。
+### 完整流程：新增一个自定义查询
 
-### 步骤 1：编辑 YAML
+**步骤 1：编辑 YAML**
 
 在 `repository/yaml/STUDENT.yaml` 的 `self_query_rules` 下新增：
 
@@ -146,71 +149,49 @@ self_query_rules:
         - expr: AGE = @Age
 ```
 
-- `select_fields`：`'*'` 返回全列，或指定列名逗号分隔
-- `page: true`：生成分页方法（嵌入 `db.Page` 的 Arg 类型）
-- `@Age`：参数名，自动驼峰转为 Go 字段 `Age`
-- 支持嵌套 WHERE：`{ operator: OR, conditions: [{ operator: AND, ... }, { ... }] }`
+- `select_fields: '*'` → 返回全列，或指定列名逗号分隔
+- `page: true` → 生成嵌入 `db.Page` 的 Arg + 嵌入 `db.PageResult` 的 Result
+- `@Age` → 参数名，自动驼峰转为 Go 字段 `Age`
 
-### 步骤 2：重新生成
+**步骤 2：重新生成**
 
 ```bash
 gen-go-db db -i ./internal/repository/yaml/STUDENT.yaml -o ./internal -m myproject/internal
 ```
 
-自动更新：
-- `student_model.go` → 新增 `StudentFindByAgeWithPageArg`（嵌入 `db.Page` + `FieldMask`）、`StudentFindByAgeWithPagePageRes`（嵌入 `db.PageResult`）
-- `mysql_student_namingsql.go` → `MYSQL_Student_FindByAgeWithPage` + Count
-- `db2_student_namingsql.go` → `DB2_Student_FindByAgeWithPage` + Count
-- `student_constant.go` → `FindByAgeWithPageNamingInfo`
-- `student_dao.go` → `doFindByAgeWithPage` 方法 + `FindByCustomerRule` case 分支
+自动更新 model（Arg/Res 类型）、namingsql（MYSQL/DB2 SQL 模板）、constant（NamingInfo 注册）、dao（switch-case 分支）。
 
-### 步骤 3：biz 层调用
+**步骤 3：biz 层调用**
 
 ```go
-import (
-    "gitlab.allinfinance.com/aifgo/ag-core/contribute/agdb/conditonwhere"
-    dao2 "your-project/internal/repository/dao"
-)
-
-func (b *StudentBiz) ListStudent(ctx context.Context, req *pb.ListReq) (*pb.ListResp, error) {
-    // 1. 构造查询参数（必须初始化 FieldMask）
-    arg := &model.StudentFindByAgeWithPageArg{
-        FieldMask: conditonwhere.NewFieldMask(),
-        Page:      gormdb.Page{PageNum: req.PageNum, PageSize: req.PageSize},
-    }
-    arg.WithAge(int(req.Age))
-
-    // 2. 执行命名 SQL
-    result, err := b.studentDao.FindByCustomerRule(ctx, dao.FindByAgeWithPageNamingInfo, arg)
-    if err != nil {
-        return nil, err
-    }
-
-    // 3. 类型断言 + 转换
-    pageRes := result.(*model.StudentFindByAgeWithPagePageRes)
-    var data []*pb.Student
-    for _, m := range pageRes.ResultList {
-        var s pb.Student
-        copier.Copy(&s, m)
-        data = append(data, &s)
-    }
-    return &pb.ListResp{
-        TotalCount: pageRes.TotalCount,
-        TotalPage:  int32(pageRes.TotalPage),
-        Data:       data,
-    }, nil
+arg := &model.StudentFindByAgeWithPageArg{
+    FieldMask: conditonwhere.NewFieldMask(),
+    Page:      gormdb.Page{PageNum: int64(req.PageNum), PageSize: int64(req.PageSize)},
 }
+arg.WithAge(int(req.Age))
+
+result, _ := b.studentDao.FindByCustomerRule(ctx, dao.FindByAgeWithPageNamingInfo, arg)
+pageRes := result.(*model.StudentFindByAgeWithPagePageRes)
+
+// 转换 model → proto
+var data []*pb.Student
+for _, m := range pageRes.ResultList {
+    var s pb.Student
+    copier.Copy(&s, m)
+    data = append(data, &s)
+}
+return &pb.ListResp{
+    TotalCount: pageRes.TotalCount,
+    TotalPage:  int32(pageRes.TotalPage),
+    Data:       data,
+}, nil
 ```
 
-> ⚠️ **常见错误**：忘记 `FieldMask: conditonwhere.NewFieldMask()` → `WithXxx()` 空指针 panic
+### FindByCondition — WhereClauseBuilder 动态查询
 
-## 条件构建器（FindByCondition）
-
-适用于查询条件灵活多变的场景：
+无需预定义 YAML，适合条件灵活变化的轻量场景。
 
 ```go
-import "gitlab.allinfinance.com/aifgo/ag-core/contribute/agdb/conditonwhere"
-
 cond := conditonwhere.NewWhereClauseBuilder()
 if req.Name != "" {
     cond.Eq("NAME", req.Name)
@@ -225,16 +206,15 @@ page := &gormdb.Page{PageNum: int64(1), PageSize: int64(20)}
 list, pageResult, err := dao.FindByCondition(ctx, cond, order, page)
 ```
 
-> ⚠️ `FindByCondition` 不含索引安全检查，需自行确保 WHERE 字段有索引。
+> ⚠️ `FindByCondition` 不含索引安全检查，不支持 LIKE，需自行确保 WHERE 字段有索引。
 
 ## 初始化与 fx 注入
 
-### 第一步：创建 DAO 模块（手动）
+### 步骤 1：创建 DAO 模块
 
-在 `internal/repository/dao/` 下创建 `zfx_dao.go`（不被 gen-go-db 覆盖）：
+在 `internal/repository/dao/zfx_dao.go` 中（不被 gen-go-db 覆盖）：
 
 ```go
-// internal/repository/dao/zfx_dao.go
 package dao
 
 import "go.uber.org/fx"
@@ -242,20 +222,15 @@ import "go.uber.org/fx"
 var FxDaoModule = fx.Module("fx_dao",
     fx.Provide(
         NewStudentDao,
-        // 后续新增表只需加一行：
-        // NewTeacherDao,
-        // NewCourseDao,
     ),
 )
 ```
 
-### 第二步：注册到内部模块
+### 步骤 2：注册到 internal
 
 在 `internal/zfx_internal.go` 中：
 
 ```go
-import "your-project/internal/repository/dao"
-
 var FxInternalModule = fx.Module("fx-internal-module",
     config.FxAppConfigModule,
     svcgen.FxServiceWithProxyModule(),
@@ -264,43 +239,25 @@ var FxInternalModule = fx.Module("fx-internal-module",
 )
 ```
 
-### 第三步：app 装配
+### 步骤 3：app 装配
 
 ```go
-import (
-    "gitlab.allinfinance.com/aifgo/ag-core/contribute/agdb/gormdb"
-    agdb "gitlab.allinfinance.com/aifgo/ag-core/contribute/agdb"
-)
-
 app := fx.New(
-    gormdb.FxAicGromdbModule,   // *gorm.DB → Repository
-    agdb.FxAgDbModule,          // BaseDao + 事务中间件
-    internal.FxInternalModule,   // 内部聚合（含 DAO、Config、Service...）
+    gormdb.FxAicGromdbModule,  // *gorm.DB → Repository
+    agdb.FxAgDbModule,         // BaseDao + 事务中间件
+    internal.FxInternalModule,  // 内部聚合（含 DAO、Config、Service...）
 )
 ```
 
-**优势**：
-- `NewStudentDao` 依赖的 `*Repository` 和 `BaseDao` 由 fx 自动注入
-- 新增表只改 `zfx_dao.go` 一行，不动入口
-- 遵循 `config.FxAppConfigModule` 同层聚合模式
-
-### 在 Service 中注入
+### 在 Service/Biz 中注入
 
 ```go
-type StudentServiceImpl struct {
+type StudentBiz struct {
     studentDao dao.IStudentDao  // 面向接口
 }
 
-func NewStudentServiceImpl(studentDao dao.IStudentDao) *StudentServiceImpl {
-    return &StudentServiceImpl{studentDao: studentDao}
-}
-
-func (s *StudentServiceImpl) GetStudent(ctx context.Context, req *pb.GetReq) (*pb.Student, error) {
-    stu, _ := s.studentDao.FindByPrimaryKey(ctx, model.StudentPrimaryKey(req.Id))
-    if stu == nil {
-        return nil, status.Errorf(codes.NotFound, "学生不存在")
-    }
-    return convertToPB(stu), nil
+func NewStudentBiz(studentDao dao.IStudentDao) *StudentBiz {
+    return &StudentBiz{studentDao: studentDao}
 }
 ```
 
