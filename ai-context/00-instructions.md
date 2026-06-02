@@ -46,7 +46,8 @@ User Request →
 ├─ New API?       → write .proto → aggo proto → implement service → build
 ├─ Regenerate?    → aggo proto -p <target> → go mod tidy → go build
 ├─ Modify API?    → edit .proto → aggo proto → update service logic
-└─ Client Call?   → get callee .proto → aggo proto -p kitex/ertz -m client
+├─ Add DB Table?  → define YAML → gen-go-db → implement biz → build
+├─ Client Call?   → get callee .proto → aggo proto -p kitex/ertz -m client
 ```
 
 ## Detailed Patterns
@@ -60,6 +61,9 @@ For complete implementation patterns, refer to [SKILL.md](../SKILL.md):
 - Hertz → [hertz-patterns.md](../references/hertz-patterns.md)
 - Database → [db-yaml-format.md](../references/db-yaml-format.md) | [gen-go-db-cli.md](../references/gen-go-db-cli.md) | [dao-usage.md](../references/dao-usage.md)
 - Configuration → [ag-conf-patterns.md](../references/ag-conf-patterns.md)
+- Database YAML → [db-yaml-format.md](../references/db-yaml-format.md)
+- gen-go-db CLI → [gen-go-db-cli.md](../references/gen-go-db-cli.md)
+- DAO Usage → [dao-usage.md](../references/dao-usage.md)
 - Gateway Pattern → [gateway-patterns.md](../references/gateway-patterns.md)
 
 ## Avoid

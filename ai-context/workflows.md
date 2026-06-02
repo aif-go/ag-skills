@@ -61,6 +61,23 @@ When calling other microservices:
 4. Test: curl localhost:<port>/<path>
 ```
 
+## 7. Define Database Table
+
+```
+1. Write YAML definition: repository/yaml/<TABLE>.yaml
+2. Follow: [db-yaml-format.md](../references/db-yaml-format.md)
+3. Define columns, indexes, self_query_rules
+```
+
+## 8. Generate DAO Code
+
+```
+1. gen-go-db db -i ./internal/repository/yaml/<TABLE>.yaml -o ./internal -m <module/internal>
+2. go mod tidy && go build ./...
+```
+
+Auto-generates: model, dao, namingsql (MYSQL+DB2), constant.
+
 ## Decision Matrix
 
 | Request | Workflow |

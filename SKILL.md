@@ -1,6 +1,6 @@
 ---
 name: ag-skills
-description: This skill should be used when the user asks to create an ag-core microservice, define a protobuf API, generate code with aggo, implement service logic, add Kitex/Hertz adapter, build a gRPC/HTTP service with ag-core, use aggo new/proto commands, or work with ag-core .proto files, internal/service/, idl/api/ directories.
+description: This skill should be used when the user asks to create an ag-core microservice, define a protobuf API, generate code with aggo, implement service logic, add Kitex/Hertz adapter, generate DAO/Model with gen-go-db, design database tables, build a gRPC/HTTP service with ag-core, use aggo new/proto commands, gen-go-db db commands, or work with ag-core .proto files, internal/service/, idl/api/ directories.
 version: 1.0.0
 allowed-tools:
   - Read
@@ -24,6 +24,7 @@ Invoke when working with ag-core:
 - **Generating code**: `aggo proto` with all plugin/mode combinations
 - **Implementing business logic**: `internal/service/` layer
 - **Calling other services**: generating and using client code
+- **Designing database tables**: defining YAML definitions, running gen-go-db, using generated DAO
 
 ## Knowledge Structure
 
