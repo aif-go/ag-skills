@@ -63,6 +63,7 @@ kitex:
     Host: "0.0.0.0"                 # 监听地址，默认 ""
     Port: 9996                       # 监听端口，默认 7000
     AdaptivePort: true              # 端口冲突时自动查找，默认 false
+    EnableIPRange: "0:255"           # 多网卡时指定注册IP段，默认空
     ServiceName: ${server.name}-grpc
     Grpc:
       enable: true                  # 默认 true
