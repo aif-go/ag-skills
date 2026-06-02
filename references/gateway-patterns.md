@@ -251,7 +251,7 @@ var FxInternalModule = fx.Module("fx-internal-module",
 )
 ```
 
-> 装配完成后，确认本文末尾的 [验证](#验证) 无遗漏。
+> ⚠️ 必须滚动到文件末尾执行 ## 验证 的检查清单，确认所有注入点无遗漏。
 
 ---
 

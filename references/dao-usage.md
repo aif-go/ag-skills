@@ -261,7 +261,7 @@ func NewStudentBiz(studentDao dao.IStudentDao) *StudentBiz {
 }
 ```
 
-> 注入完成后，确认本文末尾的 [验证](#验证) 无遗漏。
+> ⚠️ 必须滚动到文件末尾执行 ## 验证 的检查清单，确认所有注入点无遗漏。
 
 ## 事务
 
@@ -300,7 +300,7 @@ svcgen.StudentServiceGetStudentCallInfo.AddTag(
 
 > ⚠️ DAO 接口不暴露 `Transaction()` 方法，声明式是 biz 层的标准事务途径。
 
-> 事务声明后，确认本文末尾的 [验证](#验证) 无遗漏。
+> ⚠️ 必须滚动到文件末尾执行 ## 验证 的检查清单，确认所有注入点无遗漏。
 
 ## 注意事项
 
