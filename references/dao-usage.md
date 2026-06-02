@@ -263,14 +263,40 @@ func NewStudentBiz(studentDao dao.IStudentDao) *StudentBiz {
 
 ## 事务
 
+### 声明式 — AddTag（推荐）
+
+通过 `AddTag` 标记 RPC 方法，框架 AOP 中间件自动管理事务生命周期。biz 层代码无需感知。
+
+**基本用法**：
+
 ```go
-// 自动事务（REQUIRED 传播）
-err := repository.Transaction(ctx, func(txCtx context.Context) error {
-    dao.InsertOne(txCtx, &model.Student{Name: "张三"})
-    dao.InsertOne(txCtx, &model.Student{Name: "李四"})
-    return nil // commit; return error → rollback
-})
+// internal/init.go
+import (
+    "your-project/internal/svcgen"
+    "gitlab.allinfinance.com/aifgo/ag-core/contribute/agdb"
+)
+
+func init() {
+    svcgen.StudentServiceCreateStudentCallInfo.AddTag(agdb.TransactionTag, true)
+}
 ```
+
+**指定传播方式**：
+
+```go
+// 有事务则加入，无则非事务执行
+svcgen.StudentServiceGetStudentCallInfo.AddTag(
+    agdb.TransactionTag, agdb.TRANSACTION_PROPAGATION_SUPPORTS)
+```
+
+**传播方式**：
+
+| 值 | 行为 |
+|------|------|
+| `true` / `TRANSACTION_PROPAGATION_REQUIRED` | 有则加入，无则新建 |
+| `TRANSACTION_PROPAGATION_SUPPORTS` | 有则加入，无则非事务 |
+
+> ⚠️ DAO 接口不暴露 `Transaction()` 方法，声明式是 biz 层的标准事务途径。
 
 ## 注意事项
 
