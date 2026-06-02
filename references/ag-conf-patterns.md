@@ -309,6 +309,8 @@ app.yml 本地文件 → Nacos 远程配置 → -D 命令行 → 环境变量
 
 - 在 main.go 中注入 `fxs.FxAgConfModule`（提供 IBinder）
 
+> 装配完成后，确认本文末尾的 [验证](#验证) 无遗漏。
+
 ---
 
 ## AI 生成规则（禁止项）

@@ -251,6 +251,8 @@ var FxInternalModule = fx.Module("fx-internal-module",
 )
 ```
 
+> 装配完成后，确认本文末尾的 [验证](#验证) 无遗漏。
+
 ---
 
 ## 验证

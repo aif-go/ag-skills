@@ -261,6 +261,8 @@ func NewStudentBiz(studentDao dao.IStudentDao) *StudentBiz {
 }
 ```
 
+> 注入完成后，确认本文末尾的 [验证](#验证) 无遗漏。
+
 ## 事务
 
 ### 声明式 — AddTag（推荐）
@@ -297,6 +299,8 @@ svcgen.StudentServiceGetStudentCallInfo.AddTag(
 | `TRANSACTION_PROPAGATION_SUPPORTS` | 有则加入，无则非事务 |
 
 > ⚠️ DAO 接口不暴露 `Transaction()` 方法，声明式是 biz 层的标准事务途径。
+
+> 事务声明后，确认本文末尾的 [验证](#验证) 无遗漏。
 
 ## 注意事项
 
