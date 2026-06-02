@@ -4,7 +4,9 @@
 
 User asks to create a new ag-core project, scaffold a microservice, or init an ag-core workspace.
 
-## Workflow
+## Workflow (ALL steps REQUIRED)
+
+Execute all 7 steps in order. Do NOT skip any step, even if the user does not explicitly ask for it.
 
 ### Step 1: Gather Input (MUST confirm)
 
@@ -26,7 +28,7 @@ aggo new -r <template-url> -b <branch> <project-name>
 
 If `aggo` is not found, guide user: `go install <aggo-module>@latest`
 
-### Step 3: Inject AI Context
+### Step 3: Inject AI Context (REQUIRED)
 
 Create `.claude/` directory in the new project and copy ai-context files from the skill:
 
@@ -44,7 +46,7 @@ cp "$SKILL_ROOT/ai-context/tools.md"          .claude/ai-context/
 
 > **Note**: The SKILL_ROOT is the directory where `SKILL.md` resides. Use the actual path.
 
-### Step 4: Create .claude/CLAUDE.md Entry Point
+### Step 4: Create .claude/CLAUDE.md Entry Point (REQUIRED)
 
 Write `.claude/CLAUDE.md` with the following content:
 
