@@ -251,20 +251,9 @@ var FxInternalModule = fx.Module("fx-internal-module",
 )
 ```
 
-> ⚠️ 必须滚动到文件末尾执行 ## 验证 的检查清单，确认所有注入点无遗漏。
-
----
-
-## 验证
-
-**编译检查**：
-✅ `go build ./...`  — client/gateway 注入后
-
-**注入完整性**：
+**验证**：
 □ `clients/zfx_clients.go` — `fx.Provide(NewXxxClient)` 已添加
 □ `gateway/zfx_gateway.go` — `fx.Provide(NewXxxGateway)` 已添加
-
-**装配顺序**：
 □ `internal/zfx_internal.go` — `clients.FxClientModule` → `gateway.FxGatewayModule` → `biz.FxBizModule` 顺序正确
 
 ---

@@ -307,24 +307,6 @@ app.yml 本地文件 → Nacos 远程配置 → -D 命令行 → 环境变量
 ./myapp -Ddb.host=10.0.0.1 -Dserver.port=9090
 ```
 
-- 在 main.go 中注入 `fxs.FxAgConfModule`（提供 IBinder）
-
-> ⚠️ 必须滚动到文件末尾执行 ## 验证 的检查清单，确认所有注入点无遗漏。
-
----
-
-## AI 生成规则（禁止项）
-
-| 禁止 | 正确做法 |
-|------|----------|
-| ✗ 用全局变量存配置 | ✓ 通过 fx 构造函数注入 `ag_conf.IBinder` |
-| ✗ 省略 Default 函数 | ✓ 始终提供 `DefaultXxxConfig()` 返回合理默认值 |
-| ✗ 必填字段不加 `required:"true"` | ✓ 加上标签，启动时校验 |
-| ✗ 手动解析 YAML/JSON | ✓ 用 `binder.Bind(&cfg, key)` |
-| ✗ 写死路径、端口 | ✓ 从配置读取 |
-
----
-
 ## FAQ
 
 ### Q: 改了 app.yml，为什么没生效？
