@@ -328,6 +328,18 @@ db.CreateInBatches(students, 100)
 db.Where("ID IN ?", ids).Find(&list)
 ```
 
+## 验证
+
+**编译检查**：
+✅ `go build ./...`  — gen-go-db 生成后
+
+**注入完整性**：
+□ `internal/repository/dao/zfx_dao.go` — `fx.Provide(NewXxxDao)` 已添加
+□ `internal/zfx_internal.go` — `dao.FxDaoModule` 已包含
+
+**运行时声明**：
+□ `internal/init.go` — 需要事务的 RPC 方法已 `AddTag(TransactionTag, ...)`
+
 ## 相关参考
 
 - YAML 定义格式：[[db-yaml-format]]

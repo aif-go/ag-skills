@@ -307,6 +307,8 @@ app.yml 本地文件 → Nacos 远程配置 → -D 命令行 → 环境变量
 ./myapp -Ddb.host=10.0.0.1 -Dserver.port=9090
 ```
 
+- 在 main.go 中注入 `fxs.FxAgConfModule`（提供 IBinder）
+
 ---
 
 ## AI 生成规则（禁止项）
@@ -341,3 +343,9 @@ app.yml 本地文件 → Nacos 远程配置 → -D 命令行 → 环境变量
 slog.SetLogLoggerLevel(slog.LevelDebug)
 // 输出每个 key 的查找过程
 ```
+
+## 验证
+
+**注入完整性**：
+□ `internal/config/zfx_config.go` — `fx.Provide(NewXxxConfig)` 已添加
+□ `internal/zfx_internal.go` — `config.FxAppConfigModule` 已包含

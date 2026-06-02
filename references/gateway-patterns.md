@@ -253,6 +253,20 @@ var FxInternalModule = fx.Module("fx-internal-module",
 
 ---
 
+## 验证
+
+**编译检查**：
+✅ `go build ./...`  — client/gateway 注入后
+
+**注入完整性**：
+□ `clients/zfx_clients.go` — `fx.Provide(NewXxxClient)` 已添加
+□ `gateway/zfx_gateway.go` — `fx.Provide(NewXxxGateway)` 已添加
+
+**装配顺序**：
+□ `internal/zfx_internal.go` — `clients.FxClientModule` → `gateway.FxGatewayModule` → `biz.FxBizModule` 顺序正确
+
+---
+
 ## 相关文件
 
 - Kitex 实现层：[[kitex-patterns]]
