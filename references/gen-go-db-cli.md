@@ -69,13 +69,7 @@ repository/
 >
 > `-m` 同时决定生成代码的 import 前缀。若 `repository/` 在 `internal/` 下，`-m` 需包含 `/internal`，如 `-m myproject/internal`。
 
-## 验证
-
-**编译检查**：
-✅ `go build ./...`  — 生成后必须验证，确保 `mysql_*.go` 和 `db2_*.go` 编译通过
-
-**代码规范**：
-□ `-d` 参数只用单个值或不指定，不使用 `+` / `,` 组合
+> 完成后执行验证：[[verification#gen-go-db 代码生成后]]
 
 ## 相关参考
 

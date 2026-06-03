@@ -90,11 +90,7 @@ nacos:
 3. **client 创建在 `clients/` 中统一管理** — 不自己构造 kitex client
 4. **配置在 app.yml** — 前缀 `kitex.server` / `kitex.client`
 
-## 验证
-
-**注入完整性**：
-□ `cmd/server/main.go` — `kserver.FxKitexServerBaseModule` 已声明
-□ `cmd/server/main.go` — `kclient.FxKitexClientBaseModule` 已声明（调用外部 gRPC 时）
+> 完成后执行验证：[[verification#新增 Kitex-gRPC 服务]]
 
 ## 相关文件
 

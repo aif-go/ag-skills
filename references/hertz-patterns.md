@@ -109,11 +109,7 @@ hertz:
 3. **每个 RPC 对应一个 HTTP 路由** — 通过 `google.api.http` 注解定义
 4. **client 创建在 `clients/` 中统一管理** — 详见 [[gateway-patterns]]
 
-## 验证
-
-**注入完整性**：
-□ `cmd/server/main.go` — `hserver.FxAgHertzServerModule` 已声明
-□ `cmd/server/main.go` — `hclient.FxModuleAgHertzClient` 已声明（调用外部 HTTP 时）
+> 完成后执行验证：[[verification#新增 Hertz-HTTP 服务]]
 
 ## 相关文件
 

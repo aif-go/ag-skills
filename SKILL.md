@@ -82,6 +82,11 @@ Load specific guides as needed:
 **When**: Using generated DAO for CRUD, calling named SQL, dynamic query conditions, pagination, transactions
 **Contains**: InsertOne/Update/FindByPrimaryKey/FindByStruct/FindByCustomerRule/FindByCondition, fx injection, transactions
 
+#### 9. Verification
+**File**: [references/verification.md](references/verification.md)
+**When**: Project initialization, adding database tables, adding config modules, adding cross-service calls, adding gRPC/HTTP services, gen-go-db generation
+**Contains**: Centralized fx injection checks, build verification, assembly order, runtime declarations — organized by operation scenario
+
 ### Supporting Resources
 
 #### Best Practices

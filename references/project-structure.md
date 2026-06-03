@@ -117,30 +117,4 @@ internal/
 
 ## 验证
 
-项目初始化或新增模块后，Read 以下文件逐项确认。
-
-**编译检查**：
-✅ `go build ./...`  — 每次装配后
-
-**注入完整性**（`cmd/server/main.go`）：
-
-□ `fxs.FxAgConfModule`              — 配置绑定器，必须
-□ `ag_log.FxAglogMode`              — 日志，必须
-□ `gormdb.FxAicGromdbModule`        — DB 连接，有数据库时
-□ `agdb.FxAgDbModule`               — 事务中间件，有数据库时
-□ `fxs.FxAppMode`                   — 应用生命周期，必须
-□ `hserver.FxAgHertzServerModule`   — HTTP 服务，有 HTTP 时
-□ `kserver.FxKitexServerBaseModule` — gRPC 服务，有 gRPC 时
-□ `hclient.FxModuleAgHertzClient`   — HTTP client，调用外部 HTTP 时
-□ `kclient.FxKitexClientBaseModule` — gRPC client，调用外部 gRPC 时
-□ `ag_service.FxAgServiceMode`      — 服务代理，必须
-□ `internal.FxInternalModule`       — 自定义组件入口，必须
-
-**装配顺序**（`internal/zfx_internal.go`）：
-
-□ 顺序为 `config.FxAppConfigModule` → `dao.FxDaoModule` → `clients.FxClientModule` → `gateway.FxGatewayModule` → `biz.FxBizModule` → `svcgen.FxServiceWithProxyModule()` → `adpgen.FxAdapterModule()`
-
-**运行时声明**（`internal/init.go`）：
-
-□ 所有自定义 metadata key 已 `RegMdKey()` 注册
-□ 所有需要事务的 RPC 方法已 `AddTag(TransactionTag, ...)` 声明
+> 项目初始化或新增模块后，执行 [[verification#项目初始化]]。

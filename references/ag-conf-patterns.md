@@ -328,8 +328,4 @@ slog.SetLogLoggerLevel(slog.LevelDebug)
 // 输出每个 key 的查找过程
 ```
 
-## 验证
-
-**注入完整性**：
-□ `internal/config/zfx_config.go` — `fx.Provide(NewXxxConfig)` 已添加
-□ `internal/zfx_internal.go` — `config.FxAppConfigModule` 已包含
+> 完成后执行验证：[[verification#新增配置模块]]
