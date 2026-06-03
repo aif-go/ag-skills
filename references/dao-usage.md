@@ -249,6 +249,38 @@ app := fx.New(
 )
 ```
 
+### 步骤 4：数据库配置
+
+`cmd/server/app.yml` 中配置数据库连接：
+
+```yaml
+data:
+  db:
+    user:
+      driver: mysql                                                         # 数据库驱动（mysql / db2）
+      dsn: "root:root@tcp(localhost:3306)/houzw?parseTime=True"            # 连接串（含地址、端口、库名）
+    pool:
+      MaxIdleConns: 10                                                     # 最大空闲连接数，默认 GOMAXPROCS
+      MaxOpenConns: 100                                                    # 最大打开连接数，默认 GOMAXPROCS
+      ConnMaxLifetime: 3600                                                # 连接最大存活秒数，0 不限制
+      ConnMaxIdleTime: 600                                                 # 空闲连接最大保持秒数，0 不限制
+    logger:
+      name: agdb                                                           # Logger 名称，默认 "agdb"
+      debug: false                                                         # 开启后打印每条 SQL，默认 false
+```
+
+| 字段 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `user.driver` | string | — | 数据库驱动，`mysql` 或 `db2` |
+| `user.dsn` | string | — | 数据库连接串，`parseTime=True` 必须加 |
+| `pool.MaxIdleConns` | int | `GOMAXPROCS` | 连接池最大空闲连接数 |
+| `pool.MaxOpenConns` | int | `GOMAXPROCS` | 连接池最大打开连接数 |
+| `pool.ConnMaxLifetime` | int | `0` | 连接最大存活秒数，0=不限制 |
+| `pool.ConnMaxIdleTime` | int | `0` | 空闲连接最大保持秒数，0=不限制 |
+| `logger.debug` | bool | `false` | 开启 SQL 调试日志 |
+
+> `gormdb.FxAicGromdbModule` 自动从 `data.db` 前缀读取上述配置，无需手动绑定。
+
 ### 在 Service/Biz 中注入
 
 ```go
