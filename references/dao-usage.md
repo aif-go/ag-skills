@@ -261,10 +261,6 @@ func NewStudentBiz(studentDao dao.IStudentDao) *StudentBiz {
 }
 ```
 
-**验证**：
-□ `internal/repository/dao/zfx_dao.go` — `fx.Provide(NewXxxDao)` 已添加
-□ `internal/zfx_internal.go` — `dao.FxDaoModule` 已包含
-
 ## 事务
 
 ### 声明式 — AddTag（推荐）
@@ -302,9 +298,6 @@ svcgen.StudentServiceGetStudentCallInfo.AddTag(
 
 > ⚠️ DAO 接口不暴露 `Transaction()` 方法，声明式是 biz 层的标准事务途径。
 
-**验证**：
-□ `internal/init.go` — 需要事务的 RPC 方法已 `AddTag(TransactionTag, ...)`
-
 ## 注意事项
 
 ### 零值列处理
@@ -334,6 +327,18 @@ db := repository.DB(ctx)
 db.CreateInBatches(students, 100)
 db.Where("ID IN ?", ids).Find(&list)
 ```
+
+## 验证
+
+**编译检查**：
+✅ `go build ./...`  — gen-go-db 生成后
+
+**注入完整性**：
+□ `internal/repository/dao/zfx_dao.go` — `fx.Provide(NewXxxDao)` 已添加
+□ `internal/zfx_internal.go` — `dao.FxDaoModule` 已包含
+
+**运行时声明**：
+□ `internal/init.go` — 需要事务的 RPC 方法已 `AddTag(TransactionTag, ...)`
 
 ## 相关参考
 
