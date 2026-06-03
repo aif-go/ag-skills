@@ -147,103 +147,29 @@ var FxGatewayModule = fx.Module("fx-gateway-module",
 
 ---
 
-## clients 层——标准化工厂
+## 端到端流程
 
-### 目录结构
+以调用外部评分服务（scorer）为例，完整串联 clients → gateway → biz：
 
 ```
-clients/
-├── config.go              # ClientCfg + ClientsConfig 三件套
-├── <svc>_client.go        # 每个下游服务一个工厂函数
-├── <svc>_client_http.go   # HTTP 版本
-└── zfx_clients.go         # fx.Provide(NewClientsConfig, ...)
+1. 复制 callee proto → idl/api/scorer/
+2. aggo proto -p kitex,hertz -m client → 生成 adpgen client 代码
+3. clients/config.go + clients/zfx_clients.go + 工厂函数 → 连接层
+   详见 [[service-clients]]
+4. biz/gateway.go 定义接口
+5. gateway/scorer_gateway.go 实现接口（注入 clients 工厂创建的 client）
+6. biz/xxx_biz.go 注入 gateway 接口 → 调用
+7. internal/zfx_internal.go 装配顺序: config → clients → gateway → biz → svcgen → adpgen
 ```
 
-### 通用配置（一次绑定，各工厂只读）
+## fx 装配
+
+在 `internal/zfx_internal.go` 中：
 
 ```go
-// clients/config.go
-type ClientCfg struct {
-    Mode       string // sd | direct
-    SdName     string
-    DirectAddr string
-}
-type ServiceClientCfg struct { Grpc ClientCfg; Http ClientCfg }
-type ClientsConfig struct { Services map[string]ServiceClientCfg }
-
-func NewClientsConfig(binder ag_conf.IBinder) (*ClientsConfig, error) {
-    cfg := DefaultClientsConfig()
-    binder.Bind(&cfg, "clients")
-    return &cfg, nil
-}
-```
-
-```yaml
-# app.yml
-clients:
-  Services:
-    scorer:
-      grpc:
-        mode: direct
-        directAddr: localhost:9996
-      http:
-        mode: direct
-        directAddr: http://localhost:9997
-```
-
-### 工厂函数（每个下游 ~10 行）
-
-```go
-// clients/scorer_client.go
-func NewScorerKitexClient(cfg *ClientsConfig, suite *kitex.ClientSuite) (scorerservice.Client, error) {
-    scorer := cfg.Services["scorer"]
-    name := scorer.Grpc.SdName
-    if name == "" { name = scorer.Grpc.DirectAddr }
-    return scorerservice.NewClientWithSuite(name, suite,
-        kitex.WithHostPorts(scorer.Grpc.DirectAddr),
-    )
-}
-```
-
-```go
-// clients/scorer_client_http.go
-func NewScorerHertzClient(cfg *ClientsConfig, hc *hclient.Client) scorersvc.ScorerServiceHertzClient {
-    scorer := cfg.Services["scorer"]
-    endpoint := scorer.Http.DirectAddr
-    if scorer.Http.Mode == "sd" { endpoint = scorer.Http.SdName }
-    return scorersvc.NewScorerServiceHertzClient(hc,
-        agclient.WithEndpoint(endpoint),
-        agclient.WithSD(scorer.Http.Mode == "sd"),
-    )
-}
-```
-
-**关键**：`NewClientWithSuite` + `WithHostPorts` 统一，SD 和直连都用同一方法，suite（中间件）始终生效。
-
-`WithHostPorts` 优先于 SD 解析——直连模式时直接使用指定地址。
-
-### 实施细节
-
-| 规范 | 说明 |
-|------|------|
-| YAML key 用 camelCase | `directAddr`，不用 `direct_addr`（ag-conf 按字段名映射，`_` 会与环境变量冲突） |
-| ServiceClientCfg map key 用下游服务名 | 对应 `ClientsConfig.Services[<name>]` |
-| 工厂函数返回 adpgen 生成的接口 | 如 `scorerservice.Client`，不额外包装 struct（无透传 wrapper） |
-| SD 或直连通过 app.yml 配置 | 环境切换纯 YAML 层面完成 |
-
----
-
-## fx 总装配顺序
-
-```
-config → clients → gateway → biz → svcgen → adpgen
-```
-
-```go
-// internal/zfx_internal.go
 var FxInternalModule = fx.Module("fx-internal-module",
     config.FxAppConfigModule,
-    clients.FxClientModule,       // NewClientsConfig + 各工厂
+    clients.FxClientModule,       // clients 连接层（详见 [[service-clients]]）
     gateway.FxGatewayModule,      // gateway 实现（返回接口）
     biz.FxBizModule,              // biz 编排 + 依赖 gateway 接口
     svcgen.FxServiceWithProxyModule(),
