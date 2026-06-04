@@ -67,27 +67,32 @@ Load specific guides as needed:
 **When**: Using Hertz for HTTP services, adding middleware, routing, request validation
 **Contains**: HTTP routing, ServerConfigurator assembly, middleware injection, request binding, client calls
 
-#### 6. Table YAML Definition
+#### 6. Nacos Patterns
+**File**: [references/nacos-patterns.md](references/nacos-patterns.md)
+**When**: Service registration, service discovery, Nacos configuration center, SD mode switching, remote config, agnacos module setup
+**Contains**: FX module registration (FxNacosNamingMode/FxNacosConfigMode), app.yml config, service registration/discovery, remote config center, local dev bypass
+
+#### 7. Table YAML Definition
 **File**: [references/db-yaml-format.md](references/db-yaml-format.md)
 **When**: Defining table structures, designing YAML table definitions, adding indexes/constraints, writing custom queries
 **Contains**: YAML format, column definition, type mapping, indexes, self_query_rules, dynamic SQL templates
 
-#### 7. gen-go-db CLI
+#### 8. gen-go-db CLI
 **File**: [references/gen-go-db-cli.md](references/gen-go-db-cli.md)
 **When**: Running `gen-go-db db` to generate Model/DAO from YAML definitions
 **Contains**: Command syntax, parameters, output files, usage examples
 
-#### 8. Service Clients
+#### 9. Service Clients
 **File**: [references/service-clients.md](references/service-clients.md)
 **When**: Calling other microservices, creating client factories, configuring downstream connections, SD/direct switching
 **Contains**: ClientsConfig three-part pattern, Kitex/HTTP factory functions, SD/direct switching, app.yml config
 
-#### 9. DAO Usage Guide
+#### 10. DAO Usage Guide
 **File**: [references/dao-usage.md](references/dao-usage.md)
 **When**: Using generated DAO for CRUD, calling named SQL, dynamic query conditions, pagination, transactions
 **Contains**: InsertOne/Update/FindByPrimaryKey/FindByStruct/FindByCustomerRule/FindByCondition, fx injection, transactions
 
-#### 10. Verification
+#### 11. Verification
 **File**: [references/verification.md](references/verification.md)
 **When**: Project initialization, adding database tables, adding config modules, adding cross-service calls, adding gRPC/HTTP services, gen-go-db generation
 **Contains**: Centralized fx injection checks, build verification, assembly order, runtime declarations — organized by operation scenario
@@ -98,12 +103,12 @@ Load specific guides as needed:
 **File**: [best-practices/overview.md](best-practices/overview.md)
 **When**: Production deployment, code quality, security hardening
 
-#### 11. Configuration Patterns
+#### 12. Configuration Patterns
 **File**: [references/ag-conf-patterns.md](references/ag-conf-patterns.md)
 **When**: Adding or reading configuration, creating config structs, using app.yml, hot-reload, binding config
 **Contains**: Three-part config pattern (struct+default+constructor), value-tag styles, binding vs GetProperty, config priorities
 
-#### 12. Gateway Pattern
+#### 13. Gateway Pattern
 **File**: [references/gateway-patterns.md](references/gateway-patterns.md)
 **When**: Calling other microservices, organizing biz/gateway/clients layers, integrating Redis/Kafka, defining Gateway interfaces
 **Contains**: Three-layer pattern (biz interface → gateway impl → clients factory), ClientsConfig, copier conversion, SD/direct switching

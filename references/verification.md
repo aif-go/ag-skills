@@ -101,3 +101,17 @@
 
 □ 所有自定义 metadata key 已 `RegMdKey()` 注册
 □ 所有需要事务的 RPC 方法已 `AddTag(TransactionTag, ...)` 声明
+
+---
+
+## 新增 Nacos 服务
+
+**注入完整性**：
+□ `cmd/server/main.go` — `agnacos.FxNacosNamingMode` 已声明（基础设施）
+□ `cmd/server/main.go` — `agnacos.FxNacosConfigMode` + `FxEnableNacosRemoteConfigMode` 已声明（需要远程配置时）
+
+**配置检查**：
+□ `nacos.naming.serveraddr` 已配置
+□ Kitex 客户端：`kitex.client.Resolver.enable: true`
+□ Hertz 客户端：`hertz.client.Discovery.enable: true`
+□ 本地无 Nacos 时 agnacos 模块已注释

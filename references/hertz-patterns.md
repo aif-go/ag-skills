@@ -100,13 +100,25 @@ hertz:
     DialTimeout: 1000               # 连接超时(ms)，默认 1000
     MaxConnsPerHost: 512            # 每host最大连接数，默认 512
     MaxIdleConnDuration: 10000     # 空闲保活(ms)，默认 10000
+    Discovery:
+      enable: true                  # 服务发现，默认 true
+      type: nacos
 ```
+
+## 服务注册与发现
+
+**注册**：声明 `hserver.FxAgHertzServerModule` 后，服务启动时自动向 Nacos 注册。注册名由 `hertz.server.service-name` 控制。
+
+**发现**：声明 `hclient.FxModuleAgHertzClient` 后，通过 Discovery 从 Nacos 查找下游服务实例。
+
+> 前置条件：`nacos.naming.serveraddr` 已配置 + `agnacos.FxNacosNamingMode` 已声明。详见 [[nacos-patterns]]。
 
 ## 核心原则
 
 1. **路由由 aggo 生成** — 不可手动修改 `aghertz_<service>_server.go`
 2. **中间件通过 fx 注入** — 不修改生成的 fx 文件
 3. **每个 RPC 对应一个 HTTP 路由** — 通过 `google.api.http` 注解定义
+4. **服务发现用 Nacos** — 配置 `hertz.client.Discovery`，详见 [[nacos-patterns]]
 4. **client 创建在 `clients/` 中统一管理** — 详见 [[gateway-patterns]]
 
 > 完成后执行验证：[[verification#新增 Hertz-HTTP 服务]]
@@ -117,3 +129,4 @@ hertz:
 - 项目结构：[[project-structure]]
 - Proto IDL Patterns：[[proto-idl-patterns]]
 - Gateway 模式：[[gateway-patterns]]
+- Nacos 服务发现：[[nacos-patterns]]

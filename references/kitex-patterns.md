@@ -76,12 +76,23 @@ kitex:
       GRPCConnPoolSize: 2           # 连接池大小，默认 GOMAXPROCS*3/2
     Resolver:
       enable: true                  # 服务发现，默认 true
-      type: "agnacos"
+      type: "agnacos"              # agnacos（推荐）或 nacos
+      nacos:
+        group: DEFAULT_GROUP
+        cluster: DEFAULT
 
 nacos:
-  config/naming:
-    serveraddr: "127.0.0.1:8848"
+  naming:
+    serveraddr: "192.168.1.1:8848"
 ```
+
+## 服务注册与发现
+
+**注册**：声明 `kserver.FxKitexServerBaseModule` 后，服务启动时自动向 Nacos 注册。注册名由 `kitex.server.ServiceName` 控制。
+
+**发现**：声明 `kclient.FxKitexClientBaseModule` 后，通过 Resolver 从 Nacos 查找下游服务实例。`type: agnacos` 兼容 Spring gRPC 的 `gRPC_port` metadata。
+
+> 前置条件：`nacos.naming.serveraddr` 已配置 + `agnacos.FxNacosNamingMode` 已声明。详见 [[nacos-patterns]]。
 
 ## 核心原则
 
@@ -89,6 +100,7 @@ nacos:
 2. **中间件通过 fx 注入** — 不修改生成的 fx 文件
 3. **client 创建在 `clients/` 中统一管理** — 不自己构造 kitex client
 4. **配置在 app.yml** — 前缀 `kitex.server` / `kitex.client`
+5. **服务发现用 Nacos** — 详见 [[nacos-patterns]]
 
 > 完成后执行验证：[[verification#新增 Kitex-gRPC 服务]]
 
@@ -97,3 +109,4 @@ nacos:
 - 代码生成：[[code-generation]]
 - 项目结构：[[project-structure]]
 - Gateway 模式：[[gateway-patterns]]
+- Nacos 服务发现：[[nacos-patterns]]
