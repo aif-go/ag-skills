@@ -115,6 +115,8 @@ aggo proto -p kitex,hertz -m client -e ./idl/api ./idl/api/<svc>/<svc>.proto
 
 > `-m client` 仅对 kitex/hertz 有效。
 
+> 生成后继续：[[service-clients]]（ClientCfg 三件套 → 工厂函数 → fx 注册 → app.yml 配置）
+
 ## Post-Generation
 
 ```bash

@@ -4,6 +4,20 @@
 
 ---
 
+## 前置步骤
+
+使用 service clients 前，必须先完成 client 代码生成：
+
+```
+1. 复制下游 proto → idl/api/<callee>/
+2. aggo proto -p kitex,hertz -m client -e ./idl/api ./idl/api/<callee>/<callee>.proto
+3. go mod tidy && go build ./...
+```
+
+> 详见 [[code-generation]]#Client Generation
+
+---
+
 ## 目录结构
 
 ```

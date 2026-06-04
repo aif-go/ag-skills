@@ -36,10 +36,13 @@ When calling other microservices:
 ```
 1. Copy callee's .proto to idl/api/<service>/
 2. aggo proto -p kitex,hertz -m client -e ./idl/api ./idl/api/<svc>/<svc>.proto
-3. go mod tidy && go build ./...
+3. Create ClientsConfig + factory functions: [service-clients.md](../references/service-clients.md)
+4. Define biz interface + gateway impl: [gateway-patterns.md](../references/gateway-patterns.md)
+5. go mod tidy && go build ./...
 ```
 
 > `-m client` 仅对 kitex/hertz 有效。go/api/server/service 插件不受影响。
+> 生成后接着看 [[../references/service-clients|service-clients]] 和 [[../references/gateway-patterns|gateway-patterns]]。
 
 ## 5. Implement Business Logic
 

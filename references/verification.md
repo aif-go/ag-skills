@@ -29,6 +29,11 @@
 
 ## 新增跨服务调用
 
+**前置检查**：
+□ 下游 proto 已复制到 `idl/api/<callee>/`
+□ `aggo proto -p kitex,hertz -m client` 已执行
+□ `kclient.FxKitexClientBaseModule` / `hclient.FxModuleAgHertzClient` 已在 main.go 声明
+
 **编译检查**：
 ✅ `go build ./...`  — client/gateway 注入后
 
