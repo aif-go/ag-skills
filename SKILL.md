@@ -82,27 +82,32 @@ Load specific guides as needed:
 **When**: Redis cache, Redis configuration, cache operations, agredis setup
 **Contains**: FX init, AgRedisClient injection, 4 config modes (single/cluster/Sentinel/RW), basic operations (String/Hash/List/Set/ZSet), best practices
 
-#### 9. Table YAML Definition
+#### 9. Kafka Patterns
+**File**: [references/kafka-patterns.md](references/kafka-patterns.md)
+**When**: Kafka messaging, producer/consumer, agsarama configuration
+**Contains**: FX module (FxAgsaramaModule), sarama.Client injection, producer (sync/async), consumer group, manual ACK, best practices
+
+#### 10. Table YAML Definition
 **File**: [references/db-yaml-format.md](references/db-yaml-format.md)
 **When**: Defining table structures, designing YAML table definitions, adding indexes/constraints, writing custom queries
 **Contains**: YAML format, column definition, type mapping, indexes, self_query_rules, dynamic SQL templates
 
-#### 10. gen-go-db CLI
+#### 11. gen-go-db CLI
 **File**: [references/gen-go-db-cli.md](references/gen-go-db-cli.md)
 **When**: Running `gen-go-db db` to generate Model/DAO from YAML definitions
 **Contains**: Command syntax, parameters, output files, usage examples
 
-#### 11. Service Clients
+#### 12. Service Clients
 **File**: [references/service-clients.md](references/service-clients.md)
 **When**: Calling other microservices, creating client factories, configuring downstream connections, SD/direct switching
 **Contains**: ClientsConfig three-part pattern, Kitex/HTTP factory functions, SD/direct switching, app.yml config
 
-#### 12. DAO Usage Guide
+#### 13. DAO Usage Guide
 **File**: [references/dao-usage.md](references/dao-usage.md)
 **When**: Using generated DAO for CRUD, calling named SQL, dynamic query conditions, pagination, transactions
 **Contains**: InsertOne/Update/FindByPrimaryKey/FindByStruct/FindByCustomerRule/FindByCondition, fx injection, transactions
 
-#### 13. Verification
+#### 14. Verification
 **File**: [references/verification.md](references/verification.md)
 **When**: Project initialization, adding database tables, adding config modules, adding cross-service calls, adding gRPC/HTTP services, gen-go-db generation
 **Contains**: Centralized fx injection checks, build verification, assembly order, runtime declarations — organized by operation scenario
@@ -113,12 +118,12 @@ Load specific guides as needed:
 **File**: [best-practices/overview.md](best-practices/overview.md)
 **When**: Production deployment, code quality, security hardening
 
-#### 14. Configuration Patterns
+#### 15. Configuration Patterns
 **File**: [references/ag-conf-patterns.md](references/ag-conf-patterns.md)
 **When**: Adding or reading configuration, creating config structs, using app.yml, hot-reload, binding config
 **Contains**: Three-part config pattern (struct+default+constructor), value-tag styles, binding vs GetProperty, config priorities
 
-#### 15. Gateway Pattern
+#### 16. Gateway Pattern
 **File**: [references/gateway-patterns.md](references/gateway-patterns.md)
 **When**: Calling other microservices, organizing biz/gateway/clients layers, integrating Redis/Kafka, defining Gateway interfaces
 **Contains**: Three-layer pattern (biz interface → gateway impl → clients factory), ClientsConfig, copier conversion, SD/direct switching

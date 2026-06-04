@@ -51,6 +51,8 @@ func NewStudentBiz(cli agredis.AgRedisClient) *StudentBiz {
 | `config.maxRetries` | int | `0` | 最大重试次数 |
 | `config.connMaxIdleTime` | int | `300000` | 连接最大空闲时间（ms） |
 
+> **键名映射**：YAML key 按 Go 字段名做 EqualFold 大小写不敏感匹配。若配置不生效，对比 key 拼写与字段名是否一致。
+
 ### 单机模式（最常用）
 
 ```yaml
