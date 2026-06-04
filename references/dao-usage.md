@@ -88,6 +88,7 @@ student, err := dao.FindByPrimaryKey(ctx, model.StudentPrimaryKey(1))
 | 开发成本 | 零 | 中 | 低 |
 
 > **AI 默认推荐**：自定义查询优先用 `FindByCustomerRule`。运行时索引校验 + 跨数据库兼容，生产环境更安全。
+> **审计优先**：表的所有操作（查询、条件、分页）应在 YAML `self_query_rules` 中声明，避免 WHERE 逻辑散落在 Go 代码中，无法全局审计表的使用情况。
 
 ### FindByStruct — 简单等值查询
 

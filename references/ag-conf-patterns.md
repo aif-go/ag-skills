@@ -289,6 +289,8 @@ db:
   password: "{cipher}ZW5jb2RlZHBhc3M="
 ```
 
+> `{cipher}` 前缀的值为加密密文（当前为 base64），框架加载配置时自动解密。本地 app.yml 和 Nacos 远程配置均可使用。
+
 ---
 
 ## 配置优先级

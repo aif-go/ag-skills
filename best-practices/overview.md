@@ -89,30 +89,12 @@ func NewMyConfig(binder ag_conf.IBinder) (*MyConfig, error) {
 
 ## 日志规范
 
-### 日志级别使用
+详见 [[aglog-patterns]]。
 
-| 级别 | 使用场景 |
-|------|----------|
-| `debug` | 开发调试信息 |
-| `info` | 关键业务节点（请求开始/结束、状态变更） |
-| `warn` | 可恢复的异常（重试成功、降级触发） |
-| `error` | 不可恢复的错误（数据库连接失败、RPC 超时） |
-
-### 日志最佳实践
-
-```go
-// ✅ 结构化日志
-logger.Info("student created", "id", student.Id, "name", student.Name)
-
-// ❌ 字符串拼接日志
-logger.Info(fmt.Sprintf("student %d created", student.Id))
-
-// ✅ 错误日志带完整上下文
-logger.Error("failed to query student", "id", req.Id, "error", err)
-
-// ❌ 错误日志无上下文
-logger.Error(err.Error())
-```
+**核心原则**：
+- 始终用 `InfoContext(ctx, ...)` 系列，不丢失 trace 信息
+- 结构化日志（key=value），不拼接字符串
+- 敏感信息不打印
 
 ## 错误处理
 
