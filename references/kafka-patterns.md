@@ -9,12 +9,15 @@
 ## 目录约定
 
 ```
-internal/kafka/
-├── producer.go             # Sync/Async 生产者构造器
-├── consumer.go             # 生命周期管理器（详见 kafka-consumer-patterns）
-├── composite.go            # 多 handler 路由
+internal/kafka/              ← 基础设施（接口 + 生命周期）
+├── producer.go
+├── consumer.go
+├── composite.go
+└── zfx_kafka.go             # AsKafkaHandler（导出）+ producer lifecycle
+
+internal/kafkahandler/        ← 业务适配（handler 实现，详见 kafka-consumer-patterns）
 ├── handler_<业务>.go
-└── zfx_kafka.go            # fx 模块（producer 生命周期 + consumer 注册）
+└── zfx_handler.go
 ```
 
 ---
@@ -160,7 +163,7 @@ var FxKafkaModule = fx.Module("fx-kafka-module",
     fx.Provide(
         NewSyncProducer,
         NewAsyncProducer,
-        // ... consumer providers ...
+        // consumer providers 详见 [[kafka-consumer-patterns]]
     ),
     fx.Invoke(syncProducerLifecycle),
     fx.Invoke(asyncProducerLifecycle),
