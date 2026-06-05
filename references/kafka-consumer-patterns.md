@@ -43,6 +43,16 @@ kafka:
 
 ```go
 // internal/kafka/consumer.go
+import (
+    "context"
+    "fmt"
+    "time"
+
+    "github.com/IBM/sarama"
+    "go.uber.org/fx"
+    "gitlab.allinfinance.com/aifgo/ag-core/server"
+)
+
 type KafkaConsumerServer struct {
     client  sarama.Client
     handler sarama.ConsumerGroupHandler
@@ -81,7 +91,7 @@ func NewKafkaConsumerServer(client sarama.Client, handler *CompositeHandler, con
         }
     }
 
-    // ⑧: 多 key 映射同一 topic
+    // ⑤: 多 key 映射同一 topic
     seen := make(map[string]string)
     for k, v := range config.Routes {
         if prev, ok := seen[v]; ok {
@@ -90,7 +100,7 @@ func NewKafkaConsumerServer(client sarama.Client, handler *CompositeHandler, con
         seen[v] = k
     }
 
-    // ⑧: routes 残留 key（无 group 引用）
+    // ⑥: routes 残留 key（无 group 引用）
     refd := make(map[string]bool)
     for _, cfg := range config.Groups {
         for _, k := range cfg.Topics {
@@ -102,7 +112,7 @@ func NewKafkaConsumerServer(client sarama.Client, handler *CompositeHandler, con
             slog.Warn("kafka consumer: route key not referenced by any group", "key", k)
         }
     }
-    // ⑥: handler 注册了但无 group 声明
+    // ⑦: handler 注册了但无 group 声明
     for _, key := range handler.RegisteredKeys() {
         if !refd[key] {
             slog.Warn("kafka consumer: handler registered but not declared in any group", "key", key)
@@ -220,6 +230,14 @@ Handler 通过 `TopicKey()` 自声明业务标识，`CompositeHandler` 在构造
 
 ```go
 // internal/kafka/composite.go
+import (
+    "context"
+    "fmt"
+
+    "github.com/IBM/sarama"
+    "go.uber.org/fx"
+)
+
 type TopicHandler interface {
     TopicKey() string       // 业务标识，如 "student-event"
     Handle(ctx context.Context, msg *sarama.ConsumerMessage) error
@@ -240,14 +258,9 @@ type CompositeHandlerParams struct {
 type CompositeHandler struct {
     handlers       map[string]TopicHandler  // 业务标识 → handler
     reverseRoutes  map[string]string          // 实际 topic → 业务标识
-    expectedTopics []string                   // 所有声明的标识
 }
 
 func NewCompositeHandler(p CompositeHandlerParams) *CompositeHandler {
-    var expected []string
-    for _, g := range p.Config.Groups {
-        expected = append(expected, g.Topics...)
-    }
     reverse := make(map[string]string)
     for k, v := range p.Config.Routes {
         reverse[v] = k
@@ -256,7 +269,6 @@ func NewCompositeHandler(p CompositeHandlerParams) *CompositeHandler {
     h := &CompositeHandler{
         handlers:       make(map[string]TopicHandler),
         reverseRoutes:  reverse,
-        expectedTopics: expected,
     }
     for _, handler := range p.Handlers {
         key := handler.TopicKey()
@@ -313,6 +325,13 @@ func (h *CompositeHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim 
 
 ```go
 // internal/kafka/handler_student.go
+import (
+    "context"
+    "encoding/json"
+
+    "github.com/IBM/sarama"
+)
+
 type StudentHandler struct{}
 
 func NewStudentHandler() *StudentHandler {

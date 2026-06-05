@@ -90,7 +90,7 @@ Load specific guides as needed:
 #### 10. Kafka Consumer Patterns
 **File**: [references/kafka-consumer-patterns.md](references/kafka-consumer-patterns.md)
 **When**: Kafka consumer, consumer group, Consumer Server, Multi-Handler
-**Contains**: Consumer lifecycle (ag_server.Server + self-managed ctx), Multi-Handler routing (CompositeHandler + Register), handler patterns, fx registration
+**Contains**: Consumer lifecycle (ag_server.Server + self-managed ctx), Multi-Handler routing (CompositeHandler + fx.In auto-register + routes mapping), handler patterns, fx registration, validation firewall
 
 #### 11. Table YAML Definition
 **File**: [references/db-yaml-format.md](references/db-yaml-format.md)
