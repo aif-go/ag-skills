@@ -8,7 +8,7 @@
 
 ```
 internal/kafka/
-├── consumer.go             # 生命周期管理器（实现 ag_server.Server）
+├── consumer.go             # 生命周期管理器（实现 ag_server.Server）+ 集中校验
 ├── composite.go            # 多 handler 路由 + topic 映射
 ├── handler_<业务>.go       # 每个业务标识一个 handler 文件
 └── zfx_kafka.go            # fx 模块（注册到 group:"ag_servers"）
@@ -37,6 +37,10 @@ kafka:
         topics: ["student-event", "order-paid"]  # route key / 直接 topic
 ```
 
+### 构造函数 + 集中校验
+
+`NewKafkaConsumerServer` 返回 `(*KafkaConsumerServer, error)`，在容器启动阶段完成所有校验，失败阻止启动：
+
 ```go
 // internal/kafka/consumer.go
 type KafkaConsumerServer struct {
@@ -58,7 +62,53 @@ type ConsumerGroupConfig struct {
     Topics  []string                   // route key 或直接 topic 名
 }
 
-func NewKafkaConsumerServer(client sarama.Client, handler *CompositeHandler, config *ConsumerConfig) *KafkaConsumerServer {
+func NewKafkaConsumerServer(client sarama.Client, handler *CompositeHandler, config *ConsumerConfig) (*KafkaConsumerServer, error) {
+    if len(config.Groups) == 0 {
+        return nil, fmt.Errorf("kafka consumer: no groups configured")
+    }
+    for _, cfg := range config.Groups {
+        if len(cfg.Topics) == 0 {
+            return nil, fmt.Errorf("kafka consumer: group %q has empty topics", cfg.GroupID)
+        }
+        actual := resolveTopics(cfg.Topics, config.Routes)
+        if len(actual) == 0 {
+            return nil, fmt.Errorf("kafka consumer: group %q has no valid topics after route resolution", cfg.GroupID)
+        }
+        for _, key := range cfg.Topics {
+            if !handler.HasHandler(key) {
+                return nil, fmt.Errorf("kafka consumer: key %q declared in group %q but no handler registered", key, cfg.GroupID)
+            }
+        }
+    }
+
+    // ⑧: 多 key 映射同一 topic
+    seen := make(map[string]string)
+    for k, v := range config.Routes {
+        if prev, ok := seen[v]; ok {
+            slog.Warn("kafka consumer: duplicate route target", "topic", v, "keys", []string{prev, k})
+        }
+        seen[v] = k
+    }
+
+    // ⑧: routes 残留 key（无 group 引用）
+    refd := make(map[string]bool)
+    for _, cfg := range config.Groups {
+        for _, k := range cfg.Topics {
+            refd[k] = true
+        }
+    }
+    for k := range config.Routes {
+        if !refd[k] {
+            slog.Warn("kafka consumer: route key not referenced by any group", "key", k)
+        }
+    }
+    // ⑥: handler 注册了但无 group 声明
+    for _, key := range handler.RegisteredKeys() {
+        if !refd[key] {
+            slog.Warn("kafka consumer: handler registered but not declared in any group", "key", key)
+        }
+    }
+
     ctx, cancel := context.WithCancel(context.Background())
     return &KafkaConsumerServer{
         client:  client,
@@ -67,7 +117,7 @@ func NewKafkaConsumerServer(client sarama.Client, handler *CompositeHandler, con
         ctx:     ctx,
         cancel:  cancel,
         config:  config,
-    }
+    }, nil
 }
 
 // resolveTopics 将 topics 中的 route key 解析为实际 topic
@@ -86,7 +136,10 @@ func resolveTopics(topics []string, routes map[string]string) []string {
 func (s *KafkaConsumerServer) Start(_ context.Context) error {
     for _, cfg := range s.config.Groups {
         actualTopics := resolveTopics(cfg.Topics, s.config.Routes)
-        group, _ := sarama.NewConsumerGroupFromClient(cfg.GroupID, s.client)
+        group, err := sarama.NewConsumerGroupFromClient(cfg.GroupID, s.client)
+        if err != nil {
+            return fmt.Errorf("kafka consumer: create group %q: %w", cfg.GroupID, err)
+        }
         s.groups[cfg.GroupID] = group
         go s.consumeGroup(cfg.GroupID, group, actualTopics)
     }
@@ -127,36 +180,33 @@ func (s *KafkaConsumerServer) Stop(_ context.Context) error {
 
 ### fx 注册
 
+Handler 通过辅助函数 `asKafkaHandler` 自动注入 `CompositeHandler`，无需手动 `registerHandlers`：
+
 ```go
 // internal/kafka/zfx_kafka.go
+func asKafkaHandler(fn any) any {
+    return fx.Annotate(fn,
+        fx.As(new(TopicHandler)),
+        fx.ResultTags(`group:"kafka_handlers"`),
+    )
+}
+
 var FxKafkaModule = fx.Module("fx-kafka-module",
     fx.Provide(
         NewConsumerConfig,          // *ConsumerConfig — 从 app.yml 绑定
-        NewCompositeHandler,        // 依赖 ConsumerConfig.Routes
-        NewStudentHandler,
+        NewCompositeHandler,        // fx.In: []TopicHandler + *ConsumerConfig
+        asKafkaHandler(NewStudentHandler),
+        asKafkaHandler(NewOrderHandler),
         NewKafkaConsumerServer,
         fx.Annotate(
             kafkaServerWrapper,
             fx.ResultTags(`group:"ag_servers"`),
         ),
     ),
-    fx.Invoke(registerHandlers),
 )
-
-func NewCompositeHandler(cfg *ConsumerConfig) *CompositeHandler {
-    var expected []string
-    for _, g := range cfg.Groups {
-        expected = append(expected, g.Topics...)
-    }
-    return newCompositeHandler(expected, cfg.Routes)
-}
 
 func kafkaServerWrapper(s *KafkaConsumerServer) ag_server.Server {
     return s
-}
-
-func registerHandlers(composite *CompositeHandler, h *StudentHandler) {
-    composite.Register("student-event", h)
 }
 ```
 
@@ -164,14 +214,27 @@ func registerHandlers(composite *CompositeHandler, h *StudentHandler) {
 
 ## Multi-Handler 路由
 
-### CompositeHandler
+### TopicHandler 接口
 
-Handler 用**业务标识**注册（不是 topic 名）。ConsumeClaim 通过 `reverseRoutes` 将实际 topic 反向解析为标识，再查找 handler：
+Handler 通过 `TopicKey()` 自声明业务标识，`CompositeHandler` 在构造时自动注册：
 
 ```go
 // internal/kafka/composite.go
 type TopicHandler interface {
+    TopicKey() string       // 业务标识，如 "student-event"
     Handle(ctx context.Context, msg *sarama.ConsumerMessage) error
+}
+```
+
+### CompositeHandler
+
+通过 `fx.In` 收集所有 handler，与 `ConsumerConfig` 一并注入：
+
+```go
+type CompositeHandlerParams struct {
+    fx.In
+    Handlers []TopicHandler `group:"kafka_handlers"`
+    Config   *ConsumerConfig
 }
 
 type CompositeHandler struct {
@@ -180,28 +243,45 @@ type CompositeHandler struct {
     expectedTopics []string                   // 所有声明的标识
 }
 
-func newCompositeHandler(expectedTopics []string, routes map[string]string) *CompositeHandler {
+func NewCompositeHandler(p CompositeHandlerParams) *CompositeHandler {
+    var expected []string
+    for _, g := range p.Config.Groups {
+        expected = append(expected, g.Topics...)
+    }
     reverse := make(map[string]string)
-    for k, v := range routes {
+    for k, v := range p.Config.Routes {
         reverse[v] = k
     }
-    return &CompositeHandler{
+
+    h := &CompositeHandler{
         handlers:       make(map[string]TopicHandler),
         reverseRoutes:  reverse,
-        expectedTopics: expectedTopics,
+        expectedTopics: expected,
     }
+    for _, handler := range p.Handlers {
+        key := handler.TopicKey()
+        if _, exists := h.handlers[key]; exists {
+            slog.Warn("kafka consumer: duplicate handler key", "key", key)
+        }
+        h.handlers[key] = handler
+    }
+    return h
 }
 
-func (h *CompositeHandler) Register(key string, handler TopicHandler) {
-    h.handlers[key] = handler
+func (h *CompositeHandler) HasHandler(key string) bool {
+    _, ok := h.handlers[key]
+    return ok
+}
+
+func (h *CompositeHandler) RegisteredKeys() []string {
+    var keys []string
+    for k := range h.handlers {
+        keys = append(keys, k)
+    }
+    return keys
 }
 
 func (h *CompositeHandler) Setup(_ sarama.ConsumerGroupSession) error {
-    for _, key := range h.expectedTopics {
-        if _, ok := h.handlers[key]; !ok {
-            return fmt.Errorf("no handler registered for key: %s", key)
-        }
-    }
     return nil
 }
 
@@ -239,6 +319,10 @@ func NewStudentHandler() *StudentHandler {
     return &StudentHandler{}
 }
 
+func (h *StudentHandler) TopicKey() string {
+    return "student-event"
+}
+
 func (h *StudentHandler) Handle(ctx context.Context, msg *sarama.ConsumerMessage) error {
     var event StudentEvent
     if err := json.Unmarshal(msg.Value, &event); err != nil {
@@ -255,14 +339,37 @@ producer 和 consumer 协商一致即可，常用 JSON。不强制统一格式�
 
 ---
 
+## 校验体系
+
+### NewKafkaConsumerServer — 启动防火墙（返回 error 阻止启动）
+
+| # | 校验项 | 失败 |
+|---|--------|------|
+| ① | `Groups` 为空 | `return nil, error` |
+| ② | 任一 group 的 `Topics` 为空 | `return nil, error` |
+| ③ | `resolveTopics()` 结果为空（所有 key 全解析失败） | `return nil, error` |
+| ④ | declared key 无对应 handler | `return nil, error` |
+| ⑤ | 多 key 映射同一 topic | warn |
+| ⑥ | routes 残留 key（无 group 引用） | warn |
+| ⑦ | handler 注册了但无 group 声明 | warn |
+
+### ConsumeClaim — 运行时兜底
+
+| # | 场景 | 处理 |
+|---|------|------|
+| ⑧ | 收到未知 topic | drain + `return error`（阻塞进度） |
+
+---
+
 ## 最佳实践
 
 | ✅ 正确 | ❌ 错误 |
 |------|------|
 | 消费者不耗时操作 | ConsumeClaim 中同步调用远程接口 |
 | 无论成败都 `MarkMessage`（offset 提交是连续水位） | 失败不 ack 期望重试（后续成功 ack 会覆盖） |
-| Handler 用业务标识注册（`"student-event"`），topic 名在 YAML 管理 | 代码中硬编码 topic 字符串 |
+| Handler 通过 `TopicKey()` 自声明业务标识 + `fx.As` 注入 | 代码中硬编码 topic 字符串 |
 | 环境差异通过 `routes` 映射切换，代码不变 | 环境切换时改 handler 中的 topic 常量 |
+| 关键消息处理失败记录到 DB/死信队列 | 仅依赖日志记录失败 |
 
 ---
 
@@ -272,3 +379,12 @@ producer 和 consumer 协商一致即可，常用 JSON。不强制统一格式�
 □ consumer 实现 `ag_server.Server` 并通过 wrapper 归入 `group:"ag_servers"`
 □ `internal/zfx_internal.go` 含 Kafka 模块
 □ `app.yml` 中 `routes` 映射覆盖所有业务标识
+□ 所有 handler 通过 `asKafkaHandler()` 辅助函数注入
+□ 每组 `Topics` 中的 key 都有对应 handler
+
+**启动校验**：
+□ `groups` 为空 → 启动报错
+□ `topics` 为空 → 启动报错
+□ 所有 key 不在 routes → 报错
+□ 多 key 映射同一 topic → warn
+□ handler 缺失 → 报错
