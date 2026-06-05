@@ -133,6 +133,42 @@ message DeleteReq {
 | `repeated T` | `[]T` | 列表字段 |
 | `bytes` | `[]byte` | 二进制数据 |
 
+## Stream RPC
+
+`stream` 关键字标记流式方法，返回或接收消息流而非单次请求/响应。
+
+### 服务端流（Server Streaming）
+
+客户端发一个请求，服务端持续推送多条响应：
+
+```proto
+service StudentService {
+    rpc ListStudents(ListStudentsReq) returns (stream ListStudentsResp);
+}
+
+message ListStudentsReq {
+    int32 age = 1;   // 按年龄筛选，0 表示全部
+}
+
+message ListStudentsResp {
+    repeated StudentData students = 1;   // 每批推送多条
+}
+```
+
+### 客户端流 + 双向流
+
+```proto
+// 客户端流：请求带 stream，响应不带
+rpc BatchCreate(stream CreateReq) returns (CreateResp);
+
+// 双向流：请求和响应都带 stream
+rpc Chat(stream ChatReq) returns (stream ChatResp);
+```
+
+> 流式方法不支持 HTTP 注解（`option (google.api.http)`），仅 gRPC 协议。
+
+---
+
 ## Best Practices
 
 - Service name 用 PascalCase：`StudentService`

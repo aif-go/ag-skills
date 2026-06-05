@@ -45,7 +45,7 @@ Load specific guides as needed:
 #### 1. Proto IDL Patterns
 **File**: [references/proto-idl-patterns.md](references/proto-idl-patterns.md)
 **When**: Writing .proto files, defining gRPC services, adding HTTP annotations
-**Contains**: Proto syntax, service patterns, HTTP method annotations, path params
+**Contains**: Proto syntax, service patterns, HTTP method annotations, path params, stream RPC
 
 #### 2. Code Generation
 **File**: [references/code-generation.md](references/code-generation.md)
@@ -60,7 +60,7 @@ Load specific guides as needed:
 #### 4. Kitex Patterns
 **File**: [references/kitex-patterns.md](references/kitex-patterns.md)
 **When**: Using Kitex for gRPC communication, adding interceptors, configuring gRPC server/client
-**Contains**: gRPC server/client architecture, middleware priority system, metadata propagation, fx injection
+**Contains**: gRPC server/client architecture, middleware priority system, metadata propagation, fx injection, 流式传输（服务端/客户端实现 + 限制）
 
 #### 5. Hertz Patterns
 **File**: [references/hertz-patterns.md](references/hertz-patterns.md)

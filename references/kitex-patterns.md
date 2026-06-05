@@ -94,6 +94,63 @@ nacos:
 
 > 前置条件：`nacos.naming.serveraddr` 已配置 + `agnacos.FxNacosNamingMode` 已声明。详见 [[nacos-patterns]]。
 
+## 流式传输
+
+默认 `transportType: grpc` 已同时支持 unary 和 streaming，无需额外配置。
+
+### 服务端实现
+
+```go
+// internal/biz/student_biz.go
+func (b *StudentBiz) ListStudentsStream(
+    req *student.ListStudentsReq,
+    stream student.StudentService_ListStudentsServer,
+) error {
+    for batch := range b.fetchBatches(req.Age) {
+        if err := stream.Send(&student.ListStudentsResp{Students: batch}); err != nil {
+            return err
+        }
+    }
+    return nil
+}
+```
+
+注册方式与普通 RPC 相同，不需要改动 `adpgen/`：
+
+```go
+fx.Provide(
+    akxserver.NewFxAgKitexServiceRegistry(func() *akxserver.AgKitexServiceRegistry {
+        return akxserver.NewAgKitexServiceRegistry(
+            studentservice.NewServiceInfo(),
+            &StudentServiceImpl{},
+        )
+    }),
+)
+```
+
+### 客户端调用
+
+```go
+stream, err := client.ListStudents(ctx, &student.ListStudentsReq{Age: 0})
+for {
+    resp, err := stream.Recv()
+    if err == io.EOF { break }
+    // 处理 resp.Students
+}
+```
+
+### 关键限制
+
+流式方法**不走 ag-service proxy 中间件链**，以下功能无效：
+
+- 声明式事务（`AddTag(agdb.TransactionTag, true)`）
+- ag-service 全局中间件
+- CallInfo 增强
+
+流式方法内需要事务时，在 biz 中手动管理。
+
+---
+
 ## 核心原则
 
 1. **不修改 adpgen/ 目录代码** — Kitex adapter 全部由 aggo 生成
