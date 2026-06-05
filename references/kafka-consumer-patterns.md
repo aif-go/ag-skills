@@ -53,8 +53,6 @@ import (
     "time"
 
     "github.com/IBM/sarama"
-    "go.uber.org/fx"
-    "gitlab.allinfinance.com/aifgo/ag-core/server"
 )
 
 type KafkaConsumerServer struct {
