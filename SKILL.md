@@ -85,7 +85,7 @@ Load specific guides as needed:
 #### 9. Kafka Patterns
 **File**: [references/kafka-patterns.md](references/kafka-patterns.md)
 **When**: Kafka messaging, producer, agsarama configuration
-**Contains**: FX module (FxAgsaramaModule), sarama.Client injection, producer (sync/async), config (28 fields + SASL)
+**Contains**: FX module (FxAgsaramaModule), sarama.Client injection, config (28 fields + SASL), Sync/Async producer (fx管理生命周期), best practices
 
 #### 10. Kafka Consumer Patterns
 **File**: [references/kafka-consumer-patterns.md](references/kafka-consumer-patterns.md)

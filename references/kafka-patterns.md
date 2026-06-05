@@ -6,6 +6,19 @@
 
 ---
 
+## 目录约定
+
+```
+internal/kafka/
+├── producer.go             # Sync/Async 生产者构造器
+├── consumer.go             # 生命周期管理器（详见 kafka-consumer-patterns）
+├── composite.go            # 多 handler 路由
+├── handler_<业务>.go
+└── zfx_kafka.go            # fx 模块（producer 生命周期 + consumer 注册）
+```
+
+---
+
 ## 快速开始
 
 ### FX 初始化
@@ -124,34 +137,93 @@ agsarama:
 
 ## 生产者
 
-### 同步发送
+producer 由 fx 管理生命周期（构造 → 注入 → 关闭）。biz 层直接注入 `sarama.SyncProducer` 或 `sarama.AsyncProducer`，无需手动创建/关闭。
 
-> ⚠️ 使用 SyncProducer 时，必须在 app.yml 中将 `producer.return.successes` 设为 `true`（默认 false），否则运行时报错。
+### 构造器
 
 ```go
-producer, _ := sarama.NewSyncProducerFromClient(s.client)
-defer producer.Close()
+// internal/kafka/producer.go
+func NewSyncProducer(client sarama.Client) (sarama.SyncProducer, error) {
+    return sarama.NewSyncProducerFromClient(client)
+}
 
-partition, offset, err := producer.SendMessage(&sarama.ProducerMessage{
-    Topic: "orders",
-    Key:   sarama.StringEncoder(orderID),
-    Value: sarama.ByteEncoder(jsonBytes),
-})
+func NewAsyncProducer(client sarama.Client) (sarama.AsyncProducer, error) {
+    return sarama.NewAsyncProducerFromClient(client)
+}
+```
+
+### fx 注册 + 生命周期
+
+```go
+// internal/kafka/zfx_kafka.go
+var FxKafkaModule = fx.Module("fx-kafka-module",
+    fx.Provide(
+        NewSyncProducer,
+        NewAsyncProducer,
+        // ... consumer providers ...
+    ),
+    fx.Invoke(syncProducerLifecycle),
+    fx.Invoke(asyncProducerLifecycle),
+)
+
+func syncProducerLifecycle(lc fx.Lifecycle, producer sarama.SyncProducer) {
+    lc.Append(fx.Hook{
+        OnStop: func(ctx context.Context) error { return producer.Close() },
+    })
+}
+
+func asyncProducerLifecycle(lc fx.Lifecycle, producer sarama.AsyncProducer) {
+    go func() { for range producer.Successes() {} }()
+    go func() {
+        for e := range producer.Errors() {
+            slog.Error("async producer error", "err", e)
+        }
+    }()
+    lc.Append(fx.Hook{
+        OnStop: func(ctx context.Context) error { return producer.Close() },
+    })
+}
+```
+
+### 同步发送
+
+> ⚠️ `SyncProducer` 要求 `producer.return.successes: true`（默认 false），否则运行时报错。
+
+```go
+type OrderBiz struct {
+    producer sarama.SyncProducer   // 直接注入，无需 create/close
+}
+
+func (b *OrderBiz) CreateOrder(ctx context.Context, order *Order) error {
+    data, _ := json.Marshal(order)
+    _, _, err := b.producer.SendMessage(&sarama.ProducerMessage{
+        Topic: "orders",
+        Key:   sarama.StringEncoder(order.ID),
+        Value: sarama.ByteEncoder(data),
+    })
+    if err != nil {
+        return err
+    }
+    slog.InfoContext(ctx, "order produced", "id", order.ID)
+    return nil
+}
 ```
 
 ### 异步发送（高吞吐）
 
 ```go
-producer, _ := sarama.NewAsyncProducerFromClient(s.client)
-defer producer.Close()
+type OrderBiz struct {
+    producer sarama.AsyncProducer   // 直接注入，无需 create/close
+}
 
-producer.Input() <- &sarama.ProducerMessage{Topic: "orders", Value: sarama.ByteEncoder(data)}
-
-select {
-case success := <-producer.Successes():
-    slog.Info("sent", "partition", success.Partition, "offset", success.Offset)
-case err := <-producer.Errors():
-    return err.Err
+func (b *OrderBiz) CreateOrder(ctx context.Context, order *Order) error {
+    data, _ := json.Marshal(order)
+    b.producer.Input() <- &sarama.ProducerMessage{
+        Topic: "orders",
+        Key:   sarama.StringEncoder(order.ID),
+        Value: sarama.ByteEncoder(data),
+    }
+    return nil
 }
 ```
 
@@ -166,7 +238,9 @@ case err := <-producer.Errors():
 | ✅ 正确 | ❌ 错误 |
 |------|------|
 | 通过 `agsarama.FxAgsaramaModule` 注入 `sarama.Client` | 手动 `sarama.NewClient(brokers, cfg)` |
-| 生产者复用 client，每次创建 producer | 每次创建新的 sarama.Client |
+| biz 注入 `sarama.SyncProducer`，fx 管理生命周期 | biz 中 `NewSyncProducerFromClient` + `defer Close()` |
+| producer 创建失败阻止启动（`NewSyncProducer` 返回 error） | 创建失败 log 后继续，消息丢失 |
+| AsyncProducer 的 Successes/Errors 通道持续 drain | 不 drain 导致 goroutine 泄漏 |
 
 ---
 
@@ -175,4 +249,9 @@ case err := <-producer.Errors():
 **注入完整性**：
 □ `cmd/server/main.go` — `agsarama.FxAgsaramaModule` 已声明
 □ app.yml 含 `agsarama` 配置段
+□ `producer.return.successes: true`（使用 SyncProducer 时）
 □ consumer 已注册到 `group:"ag_servers"`（详见 [[kafka-consumer-patterns]]）
+
+**生命周期**：
+□ producer fx hook 已注册 `lc.Append(fx.Hook{OnStop: ...})`
+□ AsyncProducer 的 Successes/Errors 通道已 drain
