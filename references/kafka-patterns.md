@@ -159,168 +159,20 @@ case err := <-producer.Errors():
 
 ## 消费者
 
-### 目录约定
-
-```
-internal/kafka/
-├── consumer.go             # 生命周期管理器（实现 ag_server.Server）
-├── composite.go            # 多 handler 路由
-├── handler_<topic>.go      # 每个 topic 一个 handler 文件
-└── zfx_kafka.go            # fx 模块（注册到 group:"ag_servers"）
-```
-> 生产者放 biz 层即可，不需要独立 producer.go。
-
-### 生命周期管理器
-
-消费者实现 `ag_server.Server` 接口，归入 `group:"ag_servers"` 跟随 App 统一启动/停止：
-
-```go
-// internal/kafka/consumer.go
-type KafkaConsumerServer struct {
-    group   sarama.ConsumerGroup
-    topics  []string
-    handler sarama.ConsumerGroupHandler
-}
-
-func NewKafkaConsumerServer(client sarama.Client, handler sarama.ConsumerGroupHandler) *KafkaConsumerServer {
-    group, _ := sarama.NewConsumerGroupFromClient("app-consumer", client)
-    return &KafkaConsumerServer{
-        group:   group,
-        topics:  topicsFromConfig(),
-        handler: handler,
-    }
-}
-
-func (s *KafkaConsumerServer) Start(ctx context.Context) error {
-    go func() {
-        for {
-            if err := s.group.Consume(ctx, s.topics, s.handler); err != nil {
-                slog.ErrorContext(ctx, "consumer error", "err", err)
-            }
-            if ctx.Err() != nil { return }
-        }
-    }()
-    return nil
-}
-
-func (s *KafkaConsumerServer) Stop(ctx context.Context) error {
-    return s.group.Close()
-}
-```
-
-```go
-// internal/kafka/zfx_kafka.go
-var FxKafkaModule = fx.Module("fx-kafka-module",
-    fx.Provide(
-        NewCompositeHandler,
-        NewStudentHandler,
-        NewKafkaConsumerServer,
-        fx.Annotate(
-            kafkaServerWrapper,
-            fx.ResultTags(`group:"ag_servers"`),
-        ),
-    ),
-    fx.Invoke(registerHandlers),
-)
-
-func kafkaServerWrapper(s *KafkaConsumerServer) ag_server.Server {
-    return s
-}
-
-func registerHandlers(composite *CompositeHandler, h *StudentHandler) {
-    composite.Register("student-created", h)
-}
-```
-
-### 多 Handler 注册
-
-不同 topic 路由到不同 handler：
-
-```go
-// internal/kafka/composite.go
-type TopicHandler interface {
-    Handle(ctx context.Context, msg *sarama.ConsumerMessage) error
-}
-
-type CompositeHandler struct {
-    handlers map[string]TopicHandler
-}
-
-func NewCompositeHandler() *CompositeHandler {
-    return &CompositeHandler{handlers: make(map[string]TopicHandler)}
-}
-
-func (h *CompositeHandler) Register(topic string, handler TopicHandler) {
-    h.handlers[topic] = handler
-}
-
-func (h *CompositeHandler) Setup(s sarama.ConsumerGroupSession) error   { return nil }
-func (h *CompositeHandler) Cleanup(s sarama.ConsumerGroupSession) error { return nil }
-
-func (h *CompositeHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
-    handler, ok := h.handlers[claim.Topic()]
-    if !ok {
-        for range claim.Messages() {}  // drain
-        return nil
-    }
-    for msg := range claim.Messages() {
-        if err := handler.Handle(sess.Context(), msg); err != nil {
-            continue  // 失败不 ack → 下次重试
-        }
-        sess.MarkMessage(msg, "")
-    }
-    return nil
-}
-```
-
-Handler 通过 `fx.Invoke(registerHandlers)` 注册：
-
-```go
-// internal/kafka/zfx_kafka.go（见上方）
-func registerHandlers(composite *CompositeHandler, h *StudentHandler) {
-    composite.Register("student-created", h)
-}
-```
-
-### 单个 Handler 示例
-
-```go
-// internal/kafka/handler_order.go
-type OrderHandler struct {
-    orderService *service.OrderServiceImpl
-}
-
-func (h *OrderHandler) Handle(ctx context.Context, msg *sarama.ConsumerMessage) error {
-    var event OrderEvent
-    if err := json.Unmarshal(msg.Value, &event); err != nil {
-        return err
-    }
-    return h.orderService.OnOrderCreated(ctx, &event)
-}
-```
-
-### 序列化
-
-producer 和 consumer 协商一致即可，常用 JSON。跨服务通信可用 protobuf。不强制统一格式，由业务团队约定。
-
----
+消费者实现 `ag_server.Server`，归入 `group:"ag_servers"` 跟随 App 统一管理。详见 [[kafka-consumer-patterns]]。
 
 ## 最佳实践
 
 | ✅ 正确 | ❌ 错误 |
 |------|------|
 | 通过 `agsarama.FxAgsaramaModule` 注入 `sarama.Client` | 手动 `sarama.NewClient(brokers, cfg)` |
-| 消费者不耗时操作 | ConsumeClaim 中同步调用远程接口 |
-| 处理成功 `MarkMessage`，失败不 ack | 无论成败都 ack |
 | 生产者复用 client，每次创建 producer | 每次创建新的 sarama.Client |
-| `MarkMessage` 后消息不会重复消费 | 未 MarkMessage 就认为处理完成 |
 
 ---
-
-> **高级用法**（事务消息、自定义分区器、Lag 监控、Schema Registry）不在 ag-core 封装范围内，使用 Sarama 原生 API 实现。
 
 ## 验证
 
 **注入完整性**：
 □ `cmd/server/main.go` — `agsarama.FxAgsaramaModule` 已声明
 □ app.yml 含 `agsarama` 配置段
+□ consumer 已注册到 `group:"ag_servers"`（详见 [[kafka-consumer-patterns]]）
