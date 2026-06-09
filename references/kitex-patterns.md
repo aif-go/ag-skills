@@ -149,6 +149,24 @@ for {
 
 流式方法内需要事务时，在 biz 中手动管理。
 
+### Client Streaming 额外步骤
+
+Client streaming RPC（如 `rpc StreamLog (stream Req) returns (Resp)`）的客户端流接口类型 `XxxService_XxxClient` 仅在 `-m client` 模式下生成。Server streaming 和 Bidi streaming 不需要额外步骤。
+
+1. **Server 端**（常规生成）：
+   ```bash
+   aggo proto -p go,api,server,kitex,hertz,service -m server -e ./idl/api ...
+   ```
+   生成 server streaming 实现（struct）、service stub 等全部 server 端代码。
+
+2. **Client 端**（补全接口类型）：
+   ```bash
+   aggo proto -p kitex -m client -e ./idl/api ...
+   ```
+   生成 `XxxService_XxxClient` 接口类型和 client streaming 调用封装。省略此步骤会导致 `go build` 报 `undefined` 错误。
+
+> Server streaming 和 Bidi streaming 只需步骤 1。Client streaming 必须两步都执行。
+
 ---
 
 ## 核心原则

@@ -61,6 +61,8 @@ Output:
 - `internal/adpgen/kitex/studentservice/agkitex_studentservice_client.go`
 - `internal/adpgen/kitex/studentservice/agkitex_studentservice_agclient.go`
 
+> **Client streaming RPC 注意**：如果 proto 包含 `rpc Xxx (stream Req) returns (Resp)` 类型的 client streaming，必须同时执行 `-m server` 和 `-m client` 两步。`-m client` 生成 `XxxService_XxxClient` 接口类型，缺此步骤会编译失败。
+
 ### -p hertz — Hertz (HTTP) Adapter
 **受 `-m` 影响**，控制生成 server 端或 client 端。
 
