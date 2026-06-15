@@ -10,7 +10,7 @@
 
 ```go
 import (
-    "gitlab.allinfinance.com/aifgo/ag-core/ag/ag_log"
+    "github.com/aif-go/ag-core/ag/ag_log"
     "go.uber.org/fx"
 )
 
@@ -25,7 +25,7 @@ func main() {
 ### 代码中使用
 
 ```go
-import "gitlab.allinfinance.com/aifgo/ag-core/ag/ag_log/agslog"
+import "github.com/aif-go/ag-core/ag/ag_log/agslog"
 
 // 获取顶层 Logger
 logger := agslog.GetSlog()

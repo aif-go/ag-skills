@@ -13,7 +13,7 @@ package kitex
 import (
     "context"
     "github.com/cloudwego/kitex/pkg/endpoint"
-    kserver "gitlab.allinfinance.com/aifgo/ag-core/contribute/agkitex/server"
+    kserver "github.com/aif-go/ag-core/contribute/agkitex/server"
 )
 
 func NewAuthMiddleware() endpoint.Middleware {

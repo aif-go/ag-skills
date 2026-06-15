@@ -13,7 +13,7 @@ package hertz
 import (
     "context"
     "github.com/cloudwego/hertz/pkg/app"
-    hserver "gitlab.allinfinance.com/aifgo/ag-core/contribute/aghertz/server"
+    hserver "github.com/aif-go/ag-core/contribute/aghertz/server"
 )
 
 func NewAuthMiddleware() app.HandlerFunc {

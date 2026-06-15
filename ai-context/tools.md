@@ -15,7 +15,7 @@ aggo new -r <template-git-url> -b <branch> <project-name>
 
 Example:
 ```bash
-aggo new -r http://gitlab.allinfinance.com/aifgo/ag-layout-demo.git -b base agaidevdemo
+aggo new -r http://github.com/aif-go/ag-layout-demo.git -b base agaidevdemo
 cd agaidevdemo
 go build ./...
 ```

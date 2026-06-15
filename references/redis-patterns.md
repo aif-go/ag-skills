@@ -9,7 +9,7 @@
 ### FX 初始化
 
 ```go
-import "gitlab.allinfinance.com/aifgo/ag-core/contribute/agredis"
+import "github.com/aif-go/ag-core/contribute/agredis"
 
 var mainFx = fx.Module("main",
     agredis.FxAgRedisServerMode,   // 自动从 app.yml 读取配置初始化
@@ -20,7 +20,7 @@ var mainFx = fx.Module("main",
 ### 注入 AgRedisClient
 
 ```go
-import "gitlab.allinfinance.com/aifgo/ag-core/contribute/agredis"
+import "github.com/aif-go/ag-core/contribute/agredis"
 
 type StudentBiz struct {
     redis agredis.AgRedisClient

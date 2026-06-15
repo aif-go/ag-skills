@@ -38,7 +38,7 @@ clients/
 // clients/config.go
 package clients
 
-import "gitlab.allinfinance.com/aifgo/ag-core/ag/ag_conf"
+import "github.com/aif-go/ag-core/ag/ag_conf"
 
 type ClientCfg struct {
     Mode       string // sd | direct

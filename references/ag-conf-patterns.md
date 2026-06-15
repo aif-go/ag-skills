@@ -28,7 +28,7 @@ app:
 // config/app.go
 package config
 
-import "gitlab.allinfinance.com/aifgo/ag-core/ag/ag_conf"
+import "github.com/aif-go/ag-core/ag/ag_conf"
 
 const AppConfigKey = "app"
 
@@ -198,7 +198,7 @@ main.go
 // internal/config/hzw_config.go
 package config
 
-import "gitlab.allinfinance.com/aifgo/ag-core/ag/ag_conf"
+import "github.com/aif-go/ag-core/ag/ag_conf"
 
 const HzwKey = "hzw"
 

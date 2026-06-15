@@ -10,8 +10,8 @@
 
 ```go
 import (
-    "gitlab.allinfinance.com/aifgo/ag-core/contribute/agonet"
-    "gitlab.allinfinance.com/aifgo/ag-core/contribute/agonet/simple"
+    "github.com/aif-go/ag-core/contribute/agonet"
+    "github.com/aif-go/ag-core/contribute/agonet/simple"
 )
 
 var mainFx = fx.Module("main",
@@ -148,8 +148,8 @@ config:
 
 ```go
 import (
-    "gitlab.allinfinance.com/aifgo/ag-core/contribute/agonet"
-    "gitlab.allinfinance.com/aifgo/ag-core/contribute/agonet/simple"
+    "github.com/aif-go/ag-core/contribute/agonet"
+    "github.com/aif-go/ag-core/contribute/agonet/simple"
 )
 
 // 1. 创建 SimpleEventHandler（桥接 agonet 事件到 Pipeline）
@@ -280,8 +280,8 @@ Pipeline.AddLast(
 
 ```go
 import (
-    "gitlab.allinfinance.com/aifgo/ag-core/contribute/agonet"
-    "gitlab.allinfinance.com/aifgo/ag-core/contribute/agonet/simple"
+    "github.com/aif-go/ag-core/contribute/agonet"
+    "github.com/aif-go/ag-core/contribute/agonet/simple"
 )
 
 handler, _ := simple.NewSimpleEventHandlerWithOptions(

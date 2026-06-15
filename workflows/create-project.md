@@ -15,7 +15,7 @@ Ask the user for all three inputs. Show suggested defaults but require explicit 
 | Input | Question | Suggested |
 |-------|----------|-----------|
 | Project name | "项目名是什么？" | — |
-| Template repo | "模板仓库 URL？" | `http://gitlab.allinfinance.com/aifgo/ag-layout-demo.git` |
+| Template repo | "模板仓库 URL？" | `http://github.com/aif-go/ag-layout-demo.git` |
 | Template branch | "模板分支？" | `base` |
 
 Confirm: "使用模板 `<repo>` @ `<branch>` 创建项目 `<name>`，确认吗？"

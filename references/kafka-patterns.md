@@ -27,7 +27,7 @@ internal/kafkahandler/        ← 业务适配（handler 实现，详见 kafka-c
 ### FX 初始化
 
 ```go
-import "gitlab.allinfinance.com/aifgo/ag-core/contribute/agsarama"
+import "github.com/aif-go/ag-core/contribute/agsarama"
 
 var mainFx = fx.Module("main",
     agsarama.FxAgsaramaModule,   // 自动从 app.yml 读取配置，提供 sarama.Client
@@ -35,7 +35,7 @@ var mainFx = fx.Module("main",
 )
 ```
 
-> 如果 `agsarama` 包不在 go module 缓存中，先 `go get gitlab.allinfinance.com/aifgo/ag-core/contribute/agsarama@latest`。
+> 如果 `agsarama` 包不在 go module 缓存中，先 `go get github.com/aif-go/ag-core/contribute/agsarama@latest`。
 
 ### 注入 sarama.Client
 

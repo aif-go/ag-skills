@@ -306,7 +306,7 @@ func NewStudentBiz(studentDao dao.IStudentDao) *StudentBiz {
 // internal/init.go
 import (
     "your-project/internal/svcgen"
-    "gitlab.allinfinance.com/aifgo/ag-core/contribute/agdb"
+    "github.com/aif-go/ag-core/contribute/agdb"
 )
 
 func init() {

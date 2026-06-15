@@ -9,7 +9,7 @@
 `cmd/server/main.go` 中按需启用，注册在 `fxs.FxAgConfModule` 之后：
 
 ```go
-import "gitlab.allinfinance.com/aifgo/ag-core/contribute/agnacos"
+import "github.com/aif-go/ag-core/contribute/agnacos"
 
 var mainFx = fx.Module("main",
     fxs.FxAgConfModule,
