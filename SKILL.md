@@ -25,6 +25,7 @@ Invoke when working with ag-core:
 - **Implementing business logic**: `internal/service/` layer
 - **Calling other services**: generating and using client code
 - **Designing database tables**: defining YAML definitions, running gen-go-db, using generated DAO
+- **Building TCP services**: agonet EventLoop network framework, Pipeline handler chain, LengthField codec, TLS/TLCP
 
 ## Knowledge Structure
 
@@ -132,6 +133,11 @@ Load specific guides as needed:
 **File**: [references/gateway-patterns.md](references/gateway-patterns.md)
 **When**: Calling other microservices, organizing biz/gateway/clients layers, integrating Redis/Kafka, defining Gateway interfaces
 **Contains**: Three-layer pattern (biz interface → gateway impl → clients factory), ClientsConfig, copier conversion, SD/direct switching
+
+#### 18. Agonet Patterns
+**File**: [references/agonet-patterns.md](references/agonet-patterns.md)
+**When**: TCP 长连接服务、短连接客户端、自定义通信协议、TLS/TLCP 安全传输、EventLoop 网络框架、Pipeline 管道、LengthField 编解码
+**Contains**: FX module (Server/Client/ShortClient), config (TCP/TLS/TLCP/KeepAlive), Simple 三层架构, Pipeline 事件传播, Handler 类型体系, 长连接/短连接客户端, LengthField 编解码器, 常见陷阱
 
 #### Troubleshooting
 **File**: [troubleshooting/common-issues.md](troubleshooting/common-issues.md)
