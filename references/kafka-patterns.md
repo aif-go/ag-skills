@@ -39,7 +39,15 @@ var mainFx = fx.Module("main",
 
 ### 注入 sarama.Client
 
-通过 `agsarama.FxResult` 注入：
+通过 `agsarama.FxResult` 注入。`FxResult` 含 3 个出参字段：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `Config` | `*agsarama.Config` | agsarama 友好配置（YAML 绑定结果） |
+| `SaramaConfig` | `*sarama.Config` | 转换后的 Sarama 原生配置 |
+| `Client` | `sarama.Client` | Sarama 客户端（最常用） |
+
+> 多数场景只需 `result.Client`；需自建 producer/consumer 时可用 `result.SaramaConfig` 直接 `sarama.NewSyncProducer(brokers, cfg)` / `sarama.NewConsumerGroup(...)`。
 
 ```go
 type OrderService struct {
@@ -62,7 +70,7 @@ func NewOrderService(result agsarama.FxResult) *OrderService {
 | 字段 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
 | `brokers` | `[]string` | — | Kafka broker 地址列表 |
-| `clientID` | string | `""` | 客户端标识，用于监控 |
+| `clientID` | string | `"agsarama"` | 客户端标识，用于监控 |
 | `version` | string | `""` | Kafka 版本，如 `"2.8.0"` |
 | `channelBufferSize` | int | `256` | 通道缓冲区大小 |
 | `net.dialTimeout` | int | `30000` | 连接超时（ms） |
@@ -70,12 +78,12 @@ func NewOrderService(result agsarama.FxResult) *OrderService {
 | `net.writeTimeout` | int | `30000` | 写超时（ms） |
 | `net.keepAlive` | int | `0` | KeepAlive 时间（ms），0=关闭 |
 | `net.sasl.enable` | bool | `false` | 启用 SASL 认证 |
-| `net.sasl.mechanism` | string | `""` | 认证机制：`plain` / `scram-sha-256` / `scram-sha-512` |
+| `net.sasl.mechanism` | string | `""` | 认证机制：`plain` / `scram-sha-256` / `scram-sha-512` / `oauth` / `gssapi` |
 | `net.sasl.user` | string | `""` | SASL 用户名 |
 | `net.sasl.password` | string | `""` | SASL 密码 |
 | `producer.requiredAcks` | string | `"wait_for_local"` | ACK 策略：`no_response` / `wait_for_local` / `wait_for_all` |
 | `producer.compression` | string | `"none"` | 压缩：`none` / `gzip` / `snappy` / `lz4` / `zstd` |
-| `producer.partitioner` | string | `"hash"` | 分区策略 |
+| `producer.partitioner` | string | `"hash"` | 分区策略：`hash` / `manual` / `random` / `roundrobin` |
 | `producer.maxMessageBytes` | int | `1048576` | 最大消息字节数（默认 1MB） |
 | `producer.timeout` | int | `10000` | 发送超时（ms） |
 | `producer.idempotent` | bool | `false` | 幂等生产者，防重复 |
@@ -92,6 +100,8 @@ func NewOrderService(result agsarama.FxResult) *OrderService {
 | `consumer.isolationLevel` | string | `"read_uncommitted"` | 隔离级别：`read_uncommitted` / `read_committed` |
 
 > **键名映射**：YAML key 按 Go 字段名做 EqualFold 大小写不敏感匹配（如 `sid` 等于 `SId`）。若绑定失败，字段保持零值不报错。遇到配置不生效时，对比 app.yml 的键名与字段名拼写是否一致。
+
+> **partitioner 取值**：`hash`（默认，按 key hash 分区，未设 key 则随机）/ `manual`（按 `message.PartitionKey` 手动指定）/ `random` / `roundrobin`。**大小写不敏感**（`manual`/`Manual`/`MANUAL` 均可），**无效值返回 error，不再静默降级**。
 
 ### 最小配置
 
@@ -230,6 +240,33 @@ func (b *OrderBiz) CreateOrder(ctx context.Context, order *Order) error {
 }
 ```
 
+### 轻量替代：注入 Client + 临时 producer
+
+简单或低频发送场景，也可只注入 `sarama.Client`，每次发送时从 client 创建 producer 并及时 `Close()`：
+
+```go
+type OrderService struct {
+    client sarama.Client   // 注入 agsarama.FxResult.Client
+}
+
+func (s *OrderService) Publish(ctx context.Context, topic string, value []byte) error {
+    producer, err := sarama.NewSyncProducerFromClient(s.client)
+    if err != nil {
+        return err
+    }
+    defer producer.Close()
+    _, _, err = producer.SendMessage(&sarama.ProducerMessage{
+        Topic: topic,
+        Value: sarama.ByteEncoder(value),
+    })
+    return err
+}
+```
+
+> ⚠️ 必须复用同一个注入的 `sarama.Client`（连接开销大），仅每次新建轻量 producer——**不要每次 `sarama.NewClient`**。
+>
+> **选型权衡**：高频 / 固定 topic → 用上面的 fx 托管 SyncProducer/AsyncProducer 单例（免去每次创建开销）；低频 / 简单 / topic 多变 → 用本方式 client 临时创建，代码更直接。
+
 ---
 
 ## 消费者
@@ -241,7 +278,7 @@ func (b *OrderBiz) CreateOrder(ctx context.Context, order *Order) error {
 | ✅ 正确 | ❌ 错误 |
 |------|------|
 | 通过 `agsarama.FxAgsaramaModule` 注入 `sarama.Client` | 手动 `sarama.NewClient(brokers, cfg)` |
-| biz 注入 `sarama.SyncProducer`，fx 管理生命周期 | biz 中 `NewSyncProducerFromClient` + `defer Close()` |
+| 高频固定 topic：biz 注入 fx 托管的 `sarama.SyncProducer`/`AsyncProducer` 单例；低频简单场景：注入 `Client` 临时创建 producer | 每次发送都 `sarama.NewClient` 重建客户端 |
 | producer 创建失败阻止启动（`NewSyncProducer` 返回 error） | 创建失败 log 后继续，消息丢失 |
 | AsyncProducer 的 Successes/Errors 通道持续 drain | 不 drain 导致 goroutine 泄漏 |
 
