@@ -39,23 +39,23 @@ var mainFx = fx.Module("main",
 
 ### 注入 sarama.Client
 
-通过 `agsarama.FxResult` 注入。`FxResult` 含 3 个出参字段：
+`FxAgsaramaModule` 注册 3 个类型到容器，按需直接注入即可：
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `Config` | `*agsarama.Config` | agsarama 友好配置（YAML 绑定结果） |
-| `SaramaConfig` | `*sarama.Config` | 转换后的 Sarama 原生配置 |
-| `Client` | `sarama.Client` | Sarama 客户端（最常用） |
+| 类型 | 说明 |
+|------|------|
+| `*agsarama.Config` | agsarama 友好配置（YAML 绑定结果） |
+| `*sarama.Config` | 转换后的 Sarama 原生配置 |
+| `sarama.Client` | Sarama 客户端（最常用） |
 
-> 多数场景只需 `result.Client`；需自建 producer/consumer 时可用 `result.SaramaConfig` 直接 `sarama.NewSyncProducer(brokers, cfg)` / `sarama.NewConsumerGroup(...)`。
+> 多数场景只需 `sarama.Client`；需自建 producer/consumer 时可用 `*sarama.Config` 直接 `sarama.NewSyncProducer(brokers, cfg)` / `sarama.NewConsumerGroup(...)`。
 
 ```go
 type OrderService struct {
     client sarama.Client
 }
 
-func NewOrderService(result agsarama.FxResult) *OrderService {
-    return &OrderService{client: result.Client}
+func NewOrderService(client sarama.Client) *OrderService {
+    return &OrderService{client: client}
 }
 ```
 
@@ -246,7 +246,7 @@ func (b *OrderBiz) CreateOrder(ctx context.Context, order *Order) error {
 
 ```go
 type OrderService struct {
-    client sarama.Client   // 注入 agsarama.FxResult.Client
+    client sarama.Client   // 从 FxAgsaramaModule 注入
 }
 
 func (s *OrderService) Publish(ctx context.Context, topic string, value []byte) error {
