@@ -107,7 +107,7 @@ hertz:
 
 ## 服务注册与发现
 
-**注册**：声明 `hserver.FxAgHertzServerModule` 后，服务启动时自动向 Nacos 注册。注册名由 `hertz.server.service-name` 控制。
+**注册**：声明 `hserver.FxAgHertzServerModule` 后，服务启动时自动向 Nacos 注册。注册名由 `hertz.server.ServiceName` 控制。
 
 **发现**：声明 `hclient.FxModuleAgHertzClient` 后，通过 Discovery 从 Nacos 查找下游服务实例。
 

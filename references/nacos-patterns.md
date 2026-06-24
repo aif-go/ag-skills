@@ -105,7 +105,7 @@ nacos:
 **服务注册**：`kserver.FxKitexServerBaseModule` 和 `hserver.FxAgHertzServerModule` 自动处理。只需配置 `nacos.naming` 和对应协议的服务名即可：
 
 - gRPC 配置：`kitex.server.ServiceName`（详见 [[kitex-patterns]]）
-- HTTP 配置：`hertz.server.service-name`（详见 [[hertz-patterns]]）
+- HTTP 配置：`hertz.server.ServiceName`（详见 [[hertz-patterns]]）
 
 **服务发现**：在客户端配置中启用 Resolver/Discovery：
 
