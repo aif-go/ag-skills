@@ -36,7 +36,12 @@ clients/
 ```go
 package clients
 
-import "github.com/aif-go/ag-core/ag/ag_conf"
+import (
+    "fmt"
+    "strings"
+
+    "github.com/aif-go/ag-core/ag/ag_conf"
+)
 
 type ClientCfg struct {
     Mode       string // sd | direct
@@ -65,12 +70,14 @@ func NewClientsConfig(binder ag_conf.IBinder) (*ClientsConfig, error) {
 ### app.yml — SD/直连规则
 
 ```
-mode 指定       → 按 mode
+mode 指定       → 校验对应字段，缺则报错
+  sd              → sdName 必填
+  direct          → directAddr 必填
 mode 为空       →
   仅 sdName         → SD
   仅 directAddr     → 直连
-  sdName + directAddr → 报错（强制补 mode）
-  两者皆空           → 报错
+  sdName + directAddr → 报错（冲突）
+  两者皆空           → 报错（缺地址）
 ```
 
 ```yaml
@@ -94,10 +101,26 @@ clients:
 ```go
 func resolveUseSD(cfg *ClientCfg) (bool, error) {
     if cfg.Mode != "" {
-        return cfg.Mode == "sd", nil
+        switch strings.ToLower(cfg.Mode) {
+        case "sd":
+            if cfg.SdName == "" {
+                return false, fmt.Errorf("mode is 'sd' but sdName is empty")
+            }
+            return true, nil
+        case "direct":
+            if cfg.DirectAddr == "" {
+                return false, fmt.Errorf("mode is 'direct' but directAddr is empty")
+            }
+            return false, nil
+        default:
+            return false, fmt.Errorf("invalid mode '%s', must be 'sd' or 'direct'", cfg.Mode)
+        }
     }
     if cfg.SdName != "" && cfg.DirectAddr != "" {
         return false, fmt.Errorf("both sdName and directAddr set, add 'mode: sd' or 'mode: direct'")
+    }
+    if cfg.SdName == "" && cfg.DirectAddr == "" {
+        return false, fmt.Errorf("neither sdName nor directAddr is configured")
     }
     return cfg.SdName != "", nil
 }
