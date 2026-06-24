@@ -6,11 +6,10 @@
 
 ## 前置步骤
 
-使用 service clients 前，必须先完成 client 代码生成：
-
 ```
 1. 复制下游 proto → idl/api/<callee>/
-2. aggo proto -p kitex,hertz -m client -e ./idl/api ./idl/api/<callee>/<callee>.proto
+2. aggo proto -p <platform> -m client -e ./idl/api ./idl/api/<callee>/<callee>.proto
+   - `-p kitex` — 仅 gRPC | `-p hertz` — 仅 HTTP | `-p kitex,hertz` — 两者
 3. go mod tidy && go build ./...
 ```
 
@@ -22,20 +21,19 @@
 
 ```
 clients/
-├── config.go              # ClientCfg + ClientsConfig 三件套
-├── <svc>_client.go        # 每个下游服务一个工厂函数
-├── <svc>_client_http.go   # HTTP 版本
-└── zfx_clients.go         # fx.Provide(NewClientsConfig, ...)
+├── config.go                  # ClientCfg + ClientsConfig
+├── <svc>_client_kitex.go     # gRPC (Kitex) 工厂
+├── <svc>_client_hertz.go     # HTTP (Hertz) 工厂
+└── zfx_clients.go            # fx.Provide(NewClientsConfig, ...)
 ```
 
 ---
 
-## 配置（ClientCfg 三件套）
+## 配置
 
 ### config.go
 
 ```go
-// clients/config.go
 package clients
 
 import "github.com/aif-go/ag-core/ag/ag_conf"
@@ -55,14 +53,8 @@ type ClientsConfig struct {
     Services map[string]ServiceClientCfg
 }
 
-func DefaultClientsConfig() *ClientsConfig {
-    return &ClientsConfig{
-        Services: make(map[string]ServiceClientCfg),
-    }
-}
-
 func NewClientsConfig(binder ag_conf.IBinder) (*ClientsConfig, error) {
-    cfg := DefaultClientsConfig()
+    cfg := &ClientsConfig{Services: make(map[string]ServiceClientCfg)}
     if err := binder.Bind(&cfg, "clients"); err != nil {
         return nil, err
     }
@@ -70,34 +62,67 @@ func NewClientsConfig(binder ag_conf.IBinder) (*ClientsConfig, error) {
 }
 ```
 
-### app.yml
+### app.yml — SD/直连规则
+
+```
+mode 指定       → 按 mode
+mode 为空       →
+  仅 sdName         → SD
+  仅 directAddr     → 直连
+  sdName + directAddr → 报错（强制补 mode）
+  两者皆空           → 报错
+```
 
 ```yaml
 clients:
   services:
     scorer:
       grpc:
-        mode: direct
-        directAddr: localhost:9996
-      http:
-        mode: direct
-        directAddr: http://localhost:9997
+        directAddr: localhost:9996          # 最简直连
+        # sdName: scorer-grpc               # 最简 SD
+        # mode: sd; sdName: scorer-grpc     # 完整 SD（推荐）
 ```
+
+> key 用 camelCase（`directAddr`），map key 用下游服务名。环境切换纯 YAML。
 
 ---
 
 ## 工厂函数
 
+### 辅助函数 — config.go
+
+```go
+func resolveUseSD(cfg *ClientCfg) (bool, error) {
+    if cfg.Mode != "" {
+        return cfg.Mode == "sd", nil
+    }
+    if cfg.SdName != "" && cfg.DirectAddr != "" {
+        return false, fmt.Errorf("both sdName and directAddr set, add 'mode: sd' or 'mode: direct'")
+    }
+    return cfg.SdName != "", nil
+}
+```
+
 ### gRPC (Kitex)
 
 ```go
-// clients/scorer_client.go
-func NewScorerKitexClient(cfg *ClientsConfig, suite *kitex.ClientSuite) (scorerservice.Client, error) {
+// clients/scorer_client_kitex.go
+import (
+    kclient "github.com/cloudwego/kitex/client"
+    agclient "github.com/aif-go/ag-core/contribute/agkitex/client"
+)
+
+func NewScorerKitexClient(cfg *ClientsConfig, suite *agclient.KitexClientSuite) (scorerservice.Client, error) {
     scorer := cfg.Services["scorer"]
-    name := scorer.Grpc.SdName
-    if name == "" { name = scorer.Grpc.DirectAddr }
-    return scorerservice.NewClientWithSuite(name, suite,
-        kitex.WithHostPorts(scorer.Grpc.DirectAddr),
+    grpc := &scorer.Grpc
+
+    useSD, err := resolveUseSD(grpc)
+    if err != nil { return nil, err }
+    if useSD {
+        return scorerservice.NewClientWithSuite(grpc.SdName, suite)
+    }
+    return scorerservice.NewClientWithSuite(grpc.DirectAddr, suite,
+        kclient.WithHostPorts(grpc.DirectAddr),
     )
 }
 ```
@@ -105,95 +130,66 @@ func NewScorerKitexClient(cfg *ClientsConfig, suite *kitex.ClientSuite) (scorers
 ### HTTP (Hertz)
 
 ```go
-// clients/scorer_client_http.go
-func NewScorerHertzClient(cfg *ClientsConfig, hc *hclient.Client) scorersvc.ScorerServiceHertzClient {
+// clients/scorer_client_hertz.go
+import (
+    agclient "github.com/aif-go/ag-core/contribute/aghertz/aghertzclient"
+    hclient "github.com/cloudwego/hertz/pkg/app/client"
+)
+
+func NewScorerHertzClient(cfg *ClientsConfig, hc *hclient.Client) (scorersvc.ScorerServiceHertzClient, error) {
     scorer := cfg.Services["scorer"]
-    endpoint := scorer.Http.DirectAddr
-    if scorer.Http.Mode == "sd" { endpoint = scorer.Http.SdName }
+    httpCfg := &scorer.Http
+
+    useSD, err := resolveUseSD(httpCfg)
+    if err != nil { return nil, err }
+    if useSD {
+        return scorersvc.NewScorerServiceHertzClient(hc,
+            agclient.WithSDEndpoint(httpCfg.SdName),
+        ), nil
+    }
     return scorersvc.NewScorerServiceHertzClient(hc,
-        agclient.WithEndpoint(endpoint),
-        agclient.WithSD(scorer.Http.Mode == "sd"),
-    )
+        agclient.WithDirectEndpoint(httpCfg.DirectAddr),
+    ), nil
 }
 ```
 
-> **关键**：`NewClientWithSuite` + `WithHostPorts` 统一 SD 和直连模式，suite（中间件）始终生效。`WithHostPorts` 优先于 SD 解析——直连时直接使用指定地址。
-
 ---
 
-## fx 注册
+## FX 注册
+
+### clients/zfx_clients.go
 
 ```go
-// clients/zfx_clients.go
 var FxClientModule = fx.Module("fx-client-module",
-    fx.Provide(
-        NewClientsConfig,
-        NewScorerKitexClient,
-        NewScorerHertzClient,
-    ),
+    fx.Provide(NewClientsConfig, NewScorerKitexClient, NewScorerHertzClient),
 )
 ```
 
-在 `internal/zfx_internal.go` 中：
+### cmd/server/main.go（缺了启动失败）
+
+```go
+import (
+    hclient "github.com/aif-go/ag-core/contribute/aghertz/client"
+    kclient "github.com/aif-go/ag-core/contribute/agkitex/client"
+)
+
+var mainFx = fx.Module("main",
+    // …
+    hclient.FxModuleAgHertzClient,       // 注入 *hclient.Client
+    kclient.FxKitexClientBaseModule,     // 注入 *client.KitexClientSuite
+    internal.FxInternalModule,           // 包含 FxClientModule
+)
+```
+
+### internal/zfx_internal.go
 
 ```go
 var FxInternalModule = fx.Module("fx-internal-module",
     config.FxAppConfigModule,
-    clients.FxClientModule,     // ← clients 层
+    clients.FxClientModule,
     gateway.FxGatewayModule,
     biz.FxBizModule,
     svcgen.FxServiceWithProxyModule(),
     adpgen.FxAdapterModule(),
 )
 ```
-
----
-
-## SD / 直连切换
-
-| 模式 | `mode` | 使用值 | 场景 |
-|------|--------|--------|------|
-| 直连 | `direct` | `DirectAddr` | 本地开发、测试 |
-| 服务发现 | `sd` | `SdName` | 生产环境（通过 Nacos 解析） |
-
-```yaml
-# 开发环境
-clients:
-  services:
-    scorer:
-      grpc:
-        mode: direct
-        directAddr: localhost:9996
-
-# 生产环境
-clients:
-  services:
-    scorer:
-      grpc:
-        mode: sd
-        sdName: scorer-grpc
-```
-
-环境切换纯 YAML 层面完成，代码无需改动。
-
----
-
-## 实施细节
-
-| 规范 | 说明 |
-|------|------|
-| YAML key 用 camelCase | `directAddr`，不用 `direct_addr`（`_` 会与环境变量冲突） |
-| map key 用下游服务名 | 对应 `ClientsConfig.Services[<name>]` |
-| 工厂返回 adpgen 生成的接口 | 如 `scorerservice.Client`，不额外包装 |
-| 生成代码放 `idl/api/<callee>/` | 复制下游 proto → `aggo proto -p kitex,hertz -m client` |
-
----
-
-> 完成后执行验证：[[verification#新增跨服务调用]]
-
-## 相关文件
-
-- Gateway 模式：[[gateway-patterns]]
-- Kitex 实现层：[[kitex-patterns]]
-- Hertz 实现层：[[hertz-patterns]]
-- 项目结构：[[project-structure]]
