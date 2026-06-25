@@ -174,8 +174,11 @@ rpc Chat(stream ChatReq) returns (stream ChatResp);
 - Service name 用 PascalCase：`StudentService`
 - RPC method name 用 PascalCase：`GetStudent`
 - Message name 用 PascalCase + Req/Resp 后缀：`GetStudentReq`
-- Field name 用 snake_case：`student_id`
+- Field name 用 camelCase（首字母小写）：`studentId`
 - 每个 service 一个 proto 文件
+- 文件名用 snake_case：`student_service.proto`
 - HTTP 路径**不带 `/` 前缀**：`"student/get"` 而非 `"/student/get"`
 - **路径变量 `:<Name>` 必须与请求消息字段的 Go 导出名一致**（proto `stuno` → Go `Stuno` → 路径 `:Stuno`），否则路由匹配时无法正确绑定
 - go_package 为完整模块路径
+
+> **为什么用 camelCase？** ag-core 以 Hertz HTTP 为主要通信方式。protoc-gen-go 的 json tag 使用 proto3 默认的 camelCase（`studentId`），Hertz 绑定查询参数按 json tag 匹配。用 camelCase 可做到 proto 定义与 HTTP 传参同名，减少开发者心转。详见 [ag-core ProtoIDL规范](TODO: link-to-ag-core-docs)。
