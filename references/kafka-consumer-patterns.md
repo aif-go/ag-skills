@@ -233,6 +233,7 @@ var FxInternalModule = fx.Module("fx-internal-module",
 
 > `kafka` 包不 import `kafkahandler`，通过 fx `group:"kafka_handlers"` 在运行时连接，无编译期循环依赖。
 
+```go
 func kafkaServerWrapper(s *KafkaConsumerServer) ag_server.Server {
     return s
 }

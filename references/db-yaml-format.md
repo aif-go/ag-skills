@@ -51,14 +51,14 @@ self_query_rules:              # 可选：自定义查询
 
 ### 类型映射
 
-| YAML type | Go 类型 | 额外导入 |
-|-----------|---------|---------|
-| `int` / `int32` / `tinyint` / `smallint` | `int` | — |
-| `int64` / `bigint` | `int64` | — |
-| `float` / `float32` / `double` / `float64` / `decimal` | `float64` | — |
-| `string` / `varchar` / `char` / `text` | `string` | — |
-| `bool` / `boolean` | `bool` | — |
-| `time` / `datetime` / `timestamp` / `date` | `time.Time` | `"time"` |
+| YAML type                                              | Go 类型       | 额外导入     |
+| ------------------------------------------------------ | ----------- | -------- |
+| `int` / `int32` / `tinyint` / `smallint`               | `int`       | —        |
+| `int64` / `bigint`                                     | `int64`     | —        |
+| `float` / `float32` / `double` / `float64` / `decimal` | `float64`   | —        |
+| `string` / `varchar` / `char` / `text`                 | `string`    | —        |
+| `bool` / `boolean`                                     | `bool`      | —        |
+| `time` / `datetime` / `timestamp` / `date`             | `time.Time` | `"time"` |
 
 ### Tag 标记
 
